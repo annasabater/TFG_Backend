@@ -1,4 +1,4 @@
-import express from 'express';
+import { Router } from 'express';
 import {
   createDroneHandler,
   deleteDroneHandler,
@@ -10,7 +10,7 @@ import {
   getDronesByPriceRangeHandler
 } from '../controllers/drone_controller.js';
 
-const router = express.Router();
+const router = Router();
 
 /**
  * @swagger
@@ -24,21 +24,22 @@ const router = express.Router();
  * /api/drones:
  *   get:
  *     summary: Obtener todos los drones
- *     tags: [Drones]
+ *     tags:
+ *       - Drones
  *     parameters:
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number
+ *         description: Número de página para paginación
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Number of drones per page
+ *         description: Cantidad de drones por página
  *     responses:
  *       200:
- *         description: Lista de drones
+ *         description: Lista de drones obtenida correctamente
  */
 router.get('/drones', getDronesHandler);
 
@@ -47,13 +48,15 @@ router.get('/drones', getDronesHandler);
  * /api/drones/{id}:
  *   get:
  *     summary: Obtener un dron por ID
- *     tags: [Drones]
+ *     tags:
+ *       - Drones
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID único del dron
  *     responses:
  *       200:
  *         description: Datos del dron
@@ -67,7 +70,8 @@ router.get('/drones/:id', getDroneByIdHandler);
  * /api/drones:
  *   post:
  *     summary: Crear un nuevo dron
- *     tags: [Drones]
+ *     tags:
+ *       - Drones
  *     requestBody:
  *       required: true
  *       content:
@@ -75,25 +79,13 @@ router.get('/drones/:id', getDroneByIdHandler);
  *           schema:
  *             type: object
  *             required:
- *               - id
- *               - sellerId
- *               - name
+ *               - ownerId
  *               - model
  *               - price
- *               - description
- *               - type
- *               - condition
- *               - location
- *               - contact
- *               - category
  *             properties:
- *               id:
+ *               ownerId:
  *                 type: string
- *               sellerId:
- *                 type: string
- *                 description: ObjectId del usuario vendedor
- *               name:
- *                 type: string
+ *                 description: ObjectId del usuario propietario
  *               model:
  *                 type: string
  *               price:
@@ -118,7 +110,7 @@ router.get('/drones/:id', getDroneByIdHandler);
  *                   type: string
  *     responses:
  *       201:
- *         description: Dron creado
+ *         description: Dron creado exitosamente
  *       400:
  *         description: Datos inválidos
  */
@@ -128,29 +120,48 @@ router.post('/drones', createDroneHandler);
  * @swagger
  * /api/drones/{id}:
  *   put:
- *     summary: Actualizar un dron
- *     tags: [Drones]
+ *     summary: Actualizar un dron existente
+ *     tags:
+ *       - Drones
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID único del dron a actualizar
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               name:
- *                 type: string
  *               model:
  *                 type: string
  *               price:
  *                 type: number
+ *               description:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [venta, alquiler]
+ *               condition:
+ *                 type: string
+ *                 enum: [nuevo, usado]
+ *               location:
+ *                 type: string
+ *               contact:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       200:
- *         description: Dron actualizado
+ *         description: Dron actualizado correctamente
  *       404:
  *         description: Dron no encontrado
  */
@@ -161,16 +172,18 @@ router.put('/drones/:id', updateDroneHandler);
  * /api/drones/{id}:
  *   delete:
  *     summary: Eliminar un dron
- *     tags: [Drones]
+ *     tags:
+ *       - Drones
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID único del dron a eliminar
  *     responses:
  *       200:
- *         description: Dron eliminado
+ *         description: Dron eliminado correctamente
  *       404:
  *         description: Dron no encontrado
  */
@@ -181,13 +194,15 @@ router.delete('/drones/:id', deleteDroneHandler);
  * /api/drones/{id}/review:
  *   post:
  *     summary: Agregar reseña a un dron
- *     tags: [Drones]
+ *     tags:
+ *       - Drones
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *         description: ID del dron a reseñar
  *     requestBody:
  *       required: true
  *       content:
@@ -203,11 +218,13 @@ router.delete('/drones/:id', deleteDroneHandler);
  *                 type: string
  *               rating:
  *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
  *               comment:
  *                 type: string
  *     responses:
  *       200:
- *         description: Reseña agregada
+ *         description: Reseña agregada correctamente
  *       404:
  *         description: Dron o usuario no encontrado
  */
@@ -218,16 +235,18 @@ router.post('/drones/:id/review', addDroneReviewHandler);
  * /api/drones/category/{category}:
  *   get:
  *     summary: Obtener drones por categoría
- *     tags: [Drones]
+ *     tags:
+ *       - Drones
  *     parameters:
  *       - in: path
  *         name: category
  *         required: true
  *         schema:
  *           type: string
+ *         description: Categoría de los drones a buscar
  *     responses:
  *       200:
- *         description: Lista de drones en la categoría
+ *         description: Lista de drones en la categoría especificada
  */
 router.get('/drones/category/:category', getDronesByCategoryHandler);
 
@@ -236,23 +255,26 @@ router.get('/drones/category/:category', getDronesByCategoryHandler);
  * /api/drones/price:
  *   get:
  *     summary: Obtener drones por rango de precio
- *     tags: [Drones]
+ *     tags:
+ *       - Drones
  *     parameters:
  *       - in: query
  *         name: min
  *         required: true
  *         schema:
  *           type: number
+ *         description: Precio mínimo
  *       - in: query
  *         name: max
  *         required: true
  *         schema:
  *           type: number
+ *         description: Precio máximo
  *     responses:
  *       200:
- *         description: Drones encontrados en el rango
+ *         description: Drones encontrados en el rango de precio
  *       400:
- *         description: Parámetros inválidos
+ *         description: Parámetros de precio inválidos
  */
 router.get('/drones/price', getDronesByPriceRangeHandler);
 

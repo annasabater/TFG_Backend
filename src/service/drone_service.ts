@@ -16,7 +16,12 @@ export const getDrones = async (page: number, limit: number) => {
 
 // Obtiene la información detallada de un dron, incluyendo el vendedor
 export const getDroneById = async (id: string) => {
-    return await Drone.findById(id).populate('sellerId', 'name email');
+    return await Drone.findById(id)
+};
+
+//obtiene al dueño del drone
+export const getOwnerByDroneId = async (id: string) => {
+    return await Drone.findById(id).populate('ownerId', 'name email');
 };
 
 // Permite que los vendedores editen su publicación

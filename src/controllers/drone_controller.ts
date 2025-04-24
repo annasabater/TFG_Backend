@@ -7,10 +7,12 @@ import {
   getDroneById,
   updateDrone,
   deleteDrone,
+  getOwnerByDroneId,
   getDronesByCategory,
   getDronesByPriceRange,
   addReviewToDrone
 } from '../service/drone_service.js';
+import exp from 'constants';
 
 // Crear un nuevo dron
 export const createDroneHandler = async (req: Request, res: Response) => {
@@ -47,10 +49,6 @@ export const getDroneByIdHandler = async (req: Request, res: Response) => {
         }
 
         if (!drone) {
-            drone = await Drone.findOne({ id }); 
-        }
-
-        if (!drone) {
             return res.status(404).json({ message: 'Drone no encontrado' });
         }
 
@@ -59,6 +57,25 @@ export const getDroneByIdHandler = async (req: Request, res: Response) => {
         res.status(500).json({ message: error.message || "Error al obtener el dron" });
     }
 };
+
+export const getOwnerByDroneIdHandler = async (req:Request,res: Response) => {
+    try {
+        const { id } = req.params;
+        let user = null;
+
+        if (mongoose.Types.ObjectId.isValid(id)) {
+            user = await getOwnerByDroneId(id);
+        }
+
+        if (!user) {
+            return res.status(404).json({ message: 'Drone no encontrado' });
+        }
+
+        res.status(200).json(user);
+    } catch (error: any) {
+        res.status(500).json({ message: error.message || "Error al obtener el dron" });
+    }
+}
 
 
 // Actualizar un dron
