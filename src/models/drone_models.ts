@@ -10,12 +10,11 @@ export interface IDrone {
     ownerId: string;
     model: string;
     price: number;
-    description?: string;
-    type?: 'venta' | 'alquiler';
+    details?: string;
+    category?: 'venta' | 'alquiler';
     condition?: 'nuevo' | 'usado';
     location?: string;
     contact?: string;
-    category?: string;
     createdAt?: Date;
     ratings?: IRating[];
     images?: string[];
@@ -25,12 +24,11 @@ const droneSchema = new mongoose.Schema({
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     model: { type: String, required: true },
     price: { type: Number, required: true },
-    description: { type: String, required: false },
-    type: { type: String, enum: ['venta', 'alquiler'], required: false },
+    details: { type: String, required: false },
+    category: { type: String, enum: ['venta', 'alquiler'], required: false },
     condition: { type: String, enum: ['nuevo', 'usado'], required: false },
     location: { type: String, required: false },
     contact: { type: String, required: false },
-    category: { type: String, required: false },
     createdAt: { type: Date, default: Date.now },
     ratings: [ratingSchema],
     images: [{ type: String }]

@@ -47,10 +47,6 @@ const swaggerOptions = {
               description: 'Rutas principales de la API',
             },
             { 
-                name: 'Orders',
-                 description: 'Gestión de pedidos' ,
-            },
-            { 
                 name: 'Payments', 
                 description: 'Procesamiento de pagos' ,
             },

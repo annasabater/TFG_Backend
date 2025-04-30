@@ -13,14 +13,14 @@ import {
 const router = Router();
 
 /**
- * @swagger
+ * @openapi
  * tags:
  *   name: Drones
  *   description: Gestión de drones
  */
 
 /**
- * @swagger
+ * @openapi
  * /api/drones:
  *   get:
  *     summary: Obtener todos los drones
@@ -44,7 +44,7 @@ const router = Router();
 router.get('/drones', getDronesHandler);
 
 /**
- * @swagger
+ * @openapi
  * /api/drones/{id}:
  *   get:
  *     summary: Obtener un dron por ID
@@ -66,10 +66,11 @@ router.get('/drones', getDronesHandler);
 router.get('/drones/:id', getDroneByIdHandler);
 
 /**
- * @swagger
+ * @openapi
  * /api/drones:
  *   post:
  *     summary: Crear un nuevo dron
+ *     description: Crea un nuevo dron con los datos proporcionados.
  *     tags:
  *       - Drones
  *     requestBody:
@@ -78,21 +79,16 @@ router.get('/drones/:id', getDroneByIdHandler);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - ownerId
- *               - model
- *               - price
  *             properties:
  *               ownerId:
  *                 type: string
- *                 description: ObjectId del usuario propietario
  *               model:
  *                 type: string
  *               price:
  *                 type: number
- *               description:
+ *               details:
  *                 type: string
- *               type:
+ *               category:
  *                 type: string
  *                 enum: [venta, alquiler]
  *               condition:
@@ -102,22 +98,34 @@ router.get('/drones/:id', getDroneByIdHandler);
  *                 type: string
  *               contact:
  *                 type: string
- *               category:
- *                 type: string
  *               images:
  *                 type: array
  *                 items:
  *                   type: string
+ *           example:
+ *             ownerId: "string"
+ *             model: "string"
+ *             price: 0
+ *             details: "string"
+ *             category: "venta"
+ *             condition: "nuevo"
+ *             location: "string"
+ *             contact: "string"
+ *             images:
+ *               - "string"
  *     responses:
  *       201:
- *         description: Dron creado exitosamente
+ *         description: Dron creado correctamente
  *       400:
- *         description: Datos inválidos
+ *         description: Error en la creación del dron
+ *       500:
+ *         description: Error interno del servidor
  */
 router.post('/drones', createDroneHandler);
 
+
 /**
- * @swagger
+ * @openapi
  * /api/drones/{id}:
  *   put:
  *     summary: Actualizar un dron existente
@@ -168,7 +176,7 @@ router.post('/drones', createDroneHandler);
 router.put('/drones/:id', updateDroneHandler);
 
 /**
- * @swagger
+ * @openapi
  * /api/drones/{id}:
  *   delete:
  *     summary: Eliminar un dron
@@ -190,7 +198,7 @@ router.put('/drones/:id', updateDroneHandler);
 router.delete('/drones/:id', deleteDroneHandler);
 
 /**
- * @swagger
+ * @openapi
  * /api/drones/{id}/review:
  *   post:
  *     summary: Agregar reseña a un dron
@@ -231,7 +239,7 @@ router.delete('/drones/:id', deleteDroneHandler);
 router.post('/drones/:id/review', addDroneReviewHandler);
 
 /**
- * @swagger
+ * @openapi
  * /api/drones/category/{category}:
  *   get:
  *     summary: Obtener drones por categoría
@@ -251,7 +259,7 @@ router.post('/drones/:id/review', addDroneReviewHandler);
 router.get('/drones/category/:category', getDronesByCategoryHandler);
 
 /**
- * @swagger
+ * @openapi
  * /api/drones/price:
  *   get:
  *     summary: Obtener drones por rango de precio
