@@ -4,14 +4,15 @@ import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUse
 
 import express, { Request, Response } from 'express';
 
-export const saveMethodHandler = async (req: Request, res: Response) => {
+// GET /api/main
+export const saveMethodHandler = (req: Request, res: Response) => {
     try {
-        const data = saveMethod();
-        res.json(data);
-    } catch (error: any) {
-        res.status(500).json({ message: error.message });
+      const msg = saveMethod();
+      res.json({ message: msg });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
-};
+  };
 export const createUserHandler = async (req: Request, res: Response) => {
     try {
         const data = await createUser(req.body);
@@ -36,17 +37,20 @@ export const getAllUsersHandler = async (req: Request, res: Response) => {
         res.status(500).json({ message: error.message });
     }
 };
+// GET /api/users/:id
 export const getUserByIdHandler = async (req: Request, res: Response) => {
     try {
-        const data = await getUserById(req.params.id);
-        if (!data || data.isDeleted) {
-            return res.status(404).json({ message: 'Usuario no encontrado o contraseña incorrecta' });
-        }
-        res.json(data);
-    } catch (error: any) {
-        res.status(500).json({ message: error.message });
+      const user = await getUserById(req.params.id);
+      if (!user || user.isDeleted) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+      // Quitar password y responder
+      const { password, ...u } = user.toObject();
+      res.json(u);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
-};
+  };
 export const updateUserHandler = async (req: Request, res: Response) => {
     try {
         const data = await updateUser(req.params.id, req.body);
@@ -66,16 +70,18 @@ export const deleteUserHandler = async (req: Request, res: Response) => {
 
 export const logInHandler = async (req: Request, res: Response) => {
     try {
-        const data = await logIn(req.body.email, req.body.password);
-        if (!data) {
-            return res.status(404).json({ message: 'Usuario no encontrado o eliminado' });
-        }
-        res.json({ message: 'Sesión iniciada con éxito' });
-    } catch (error: any) {
-        if (error.message === 'Contraseña incorrecta') {
-            return res.status(401).json({ message: error.message });
-        }
-        res.status(500).json({ message: error.message });
-
+      const user = await logIn(req.body.email, req.body.password);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado o eliminado' });
+      }
+      // Desestructuramos para quitar password
+      const { password, ...u } = user.toObject();
+      res.json(u);
+    } catch (err: any) {
+      if (err.message === 'Contraseña incorrecta') {
+        return res.status(401).json({ message: err.message });
+      }
+      res.status(500).json({ message: err.message });
     }
-}
+  };
+  
