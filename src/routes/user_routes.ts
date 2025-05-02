@@ -1,15 +1,18 @@
-// src/routes/user_routes.ts
 import express from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+
 import {
-    saveMethodHandler,
-    createUserHandler,
-    getAllUsersHandler,
-    getUserByIdHandler,
-    updateUserHandler,
-    deleteUserHandler,
-    logInHandler
+  saveMethodHandler,
+  createUserHandler,
+  getAllUsersHandler,
+  getUserByIdHandler,
+  updateUserHandler,
+  deleteUserHandler
 } from '../controllers/user_controller.js';
-import {validateUserFields} from '../middleware/userValidationSignIn.js';
+import { validateUserFields } from '../middleware/userValidationSignIn.js';
+import User from '../models/user_models.js';
+
 const router = express.Router();
 
 /**
@@ -17,7 +20,6 @@ const router = express.Router();
  * /api/main:
  *   get:
  *     summary: Página de bienvenida
- *     description: Retorna un mensaje de bienvenida.
  *     tags:
  *       - Main
  *     responses:
@@ -39,7 +41,6 @@ router.get('/main', saveMethodHandler);
  * /api/users/signup:
  *   post:
  *     summary: Crea un nuevo usuario
- *     description: Añade los detalles de un nuevo usuario comprobando si existe un usuario primero con ese email.
  *     tags:
  *       - Users
  *     requestBody:
@@ -55,8 +56,6 @@ router.get('/main', saveMethodHandler);
  *                 type: string
  *               password:
  *                 type: string
- *                 items:
- *                   type: string
  *               role:
  *                 type: string
  *                 enum: [Administrador, Usuario, Empresa, Gobierno]
@@ -64,14 +63,13 @@ router.get('/main', saveMethodHandler);
  *       201:
  *         description: Usuario creado exitosamente
  */
-router.post('/users/signup',validateUserFields, createUserHandler);
+router.post('/users/signup', validateUserFields, createUserHandler);
 
 /**
  * @openapi
  * /api/users/login:
  *   post:
- *     summary: Ruta para loguearse con un usuario
- *     description: Loguea al usuario.
+ *     summary: Loguea al usuario y devuelve un JWT
  *     tags:
  *       - Users
  *     requestBody:
@@ -86,18 +84,52 @@ router.post('/users/signup',validateUserFields, createUserHandler);
  *               password:
  *                 type: string
  *     responses:
- *       201:
- *         description: Usuario creado exitosamente
+ *       200:
+ *         description: Login exitoso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 token:
+ *                   type: string
  */
+router.post('/users/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
 
-router.post('/users/login', logInHandler);
+    const valid = await bcrypt.compare(password, user.password as string);
+    if (!valid) return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role }, 
+      process.env.JWT_SECRET!,
+      { expiresIn: '2h' }
+    );
+
+    return res.json({
+      user: {
+        _id: user._id,
+        userName: user.userName,
+        email: user.email,
+        role: user.role
+      },
+      token
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Error interno al procesar login' });
+  }
+});
 
 /**
  * @openapi
  * /api/users:
  *   get:
  *     summary: Obtiene todos los usuarios
- *     description: Retorna una lista de todos los usuarios.
  *     tags:
  *       - Users
  *     parameters:
@@ -105,26 +137,13 @@ router.post('/users/login', logInHandler);
  *         name: page
  *         schema:
  *           type: integer
- *         description: Número de página
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Número de usuarios por página
  *     responses:
  *       200:
  *         description: Éxito
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   userName:
- *                     type: string
- *                   email:
- *                     type: string
  */
 router.get('/users', getAllUsersHandler);
 
@@ -133,7 +152,6 @@ router.get('/users', getAllUsersHandler);
  * /api/users/{id}:
  *   get:
  *     summary: Obtiene un usuario por ID
- *     description: Retorna los detalles de un usuario específico.
  *     tags:
  *       - Users
  *     parameters:
@@ -145,15 +163,6 @@ router.get('/users', getAllUsersHandler);
  *     responses:
  *       200:
  *         description: Éxito
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 userName:
- *                   type: string
- *                 email:
- *                   type: string
  *       404:
  *         description: Usuario no encontrado
  */
@@ -164,7 +173,6 @@ router.get('/users/:id', getUserByIdHandler);
  * /api/users/{id}:
  *   put:
  *     summary: Actualiza un usuario por ID
- *     description: Modifica los detalles de un usuario específico.
  *     tags:
  *       - Users
  *     parameters:
@@ -186,10 +194,6 @@ router.get('/users/:id', getUserByIdHandler);
  *                 type: string
  *               password:
  *                 type: string
- *               friends:
- *                 type: array
- *                 items:
- *                   type: string
  *     responses:
  *       200:
  *         description: Usuario actualizado exitosamente
@@ -203,7 +207,6 @@ router.put('/users/:id', updateUserHandler);
  * /api/users/{id}:
  *   delete:
  *     summary: Elimina un usuario por ID
- *     description: Elimina un usuario específico de la base de datos.
  *     tags:
  *       - Users
  *     parameters:
@@ -219,7 +222,5 @@ router.put('/users/:id', updateUserHandler);
  *         description: Usuario no encontrado
  */
 router.delete('/users/:id', deleteUserHandler);
-
-
 
 export default router;

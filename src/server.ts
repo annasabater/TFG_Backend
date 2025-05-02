@@ -108,13 +108,17 @@ app.listen(LOCAL_PORT, () => {
     console.log(`Swagger disponible a http://localhost:${LOCAL_PORT}/api-docs`);
 });
 */
+
+//http://localhost:9000/api-docs/#/
 // src/server.ts
+
+import dotenv from 'dotenv';
+dotenv.config();
 
 import express from 'express';
 import http from 'http';
-import { Server as IOServer } from 'socket.io';
+import { Server as IOServer, Socket } from 'socket.io';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 
 import userRoutes from './routes/user_routes.js';
@@ -132,7 +136,14 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import { joinLobby, listPending, acceptPlayers } from './service/session_service.js';
 import { startGameOnEngine, sendCommandToEngine } from './service/engine_service.js';
 
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+
+
+// Esto recrea __dirname en ES‑Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
@@ -140,6 +151,7 @@ const io = new IOServer(server, { cors: { origin: '*' } });
 
 const PORT = process.env.SERVER_PORT || 9000;
 
+// Swagger setup
 // Swagger setup
 const swaggerOptions = {
   definition: {
@@ -149,10 +161,27 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Documentación de la API'
     },
-    servers: [{ url: `http://localhost:${PORT}` }]
+    servers: [{ url: `http://localhost:${PORT}` }],
+    components: {
+      schemas: {
+        User: {
+          type: 'object',
+          properties: {
+            _id:       { type: 'string' },
+            userName:  { type: 'string' },
+            email:     { type: 'string' },
+            role:      { type: 'string', enum: ['Administrador','Usuario','Empresa','Gobierno'] },
+            isDeleted: { type: 'boolean' }
+          },
+          required: ['_id','userName','email','role']
+        }
+      }
+    }
   },
-  apis: ['./routes/*.js']
+  apis: [ path.join(__dirname, 'routes/*.js') ]
 };
+
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerJSDoc(swaggerOptions)));
 
 // Middlewares
@@ -166,6 +195,22 @@ app.use('/api', forumRoutes);
 app.use('/api', droneRoutes);
 app.use('/api', gameRoutes);
 app.use('/api', sessionRoutes);
+
+// Competition endpoints
+// Obtener jugadores registrados y mapeo email->color
+app.get('/api/jocs/players', (_req, res) => {
+  res.json({
+    players: Array.from(competitors),
+    mapping: competitorColors
+  });
+});
+
+// Iniciar partida desde Python
+app.post('/api/jocs/start', (_req, res) => {
+  // Notifica a todos en la sala de espera
+  jocsNS.to('waiting').emit('game_started', { mapping: competitorColors });
+  return res.status(200).json({ ok: true });
+});
 
 // 404 handler
 app.use(routeNotFound);
@@ -245,6 +290,67 @@ gameNS.on('connection', socket => {
     } catch (error: any) {
       socket.emit('error', { message: error.message });
     }
+  });
+});
+
+// Competition namespace
+const competitorEmails = new Set<string>([
+  'dron_azul1@upc.edu',
+  'dron_verde1@upc.edu',
+  'dron_rojo1@upc.edu',
+  'dron_amarillo1@upc.edu',
+]);
+const competitorColors: Record<string, string> = {
+  'dron_azul1@upc.edu': 'blue',
+  'dron_verde1@upc.edu': 'green',
+  'dron_rojo1@upc.edu': 'red',
+  'dron_amarillo1@upc.edu': 'yellow',
+};
+const competitors = new Set<string>();
+let pythonSocket: Socket | null = null;
+
+const jocsNS = io.of('/jocs');
+jocsNS.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error('No token provided'));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    socket.data.user = decoded;
+    return next();
+  } catch (error: any) {
+    next(new Error(error.message || 'Invalid token'));
+  }
+});
+
+jocsNS.on('connection', socket => {
+  const email: string = socket.data.user.email;
+  if (!competitorEmails.has(email)) {
+    socket.emit('error', { message: 'Usuario no autorizado para competir' });
+    socket.disconnect();
+    return;
+  }
+
+  // Evento de unión a sala de espera
+  socket.on('join', () => {
+    competitors.add(email);
+    socket.join('waiting');
+    jocsNS.to('waiting').emit('waiting', { msg: 'Esperando a que comience la partida...' });
+  });
+
+  // Registro del script Python
+  socket.on('registerPython', () => {
+    pythonSocket = socket;
+  });
+
+  // Comando de control desde Flutter
+  socket.on('control', data => {
+    if (pythonSocket) pythonSocket.emit('control', data);
+  });
+
+  // Inicio de partida solicitado por participantes (solo Python debe llamar)
+  socket.on('start_game', () => {
+    // Python cliente llama este evento para iniciar
+    jocsNS.to('waiting').emit('game_started', { mapping: competitorColors });
   });
 });
 

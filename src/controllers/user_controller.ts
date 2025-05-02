@@ -21,7 +21,6 @@ export const saveMethodHandler = (_req: Request, res: Response) => {
 export const createUserHandler = async (req: Request, res: Response) => {
   try {
     const userDoc = await serviceCreateUser(req.body);
-    // Quitar la contraseña antes de enviar
     const { password, ...user } = userDoc.toObject();
     return res.status(201).json({ user });
   } catch (err: any) {
