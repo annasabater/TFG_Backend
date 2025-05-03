@@ -6,10 +6,9 @@ import {
     getAllUsersHandler,
     getUserByIdHandler,
     updateUserHandler,
-    deleteUserHandler,
-    logInHandler
+    deleteUserHandler
 } from '../controllers/user_controller.js';
-import {validateUserFields} from '../middleware/userValidationSignIn.js';
+import { checkJwt } from '../middleware/session.js';
 const router = express.Router();
 
 /**
@@ -32,65 +31,66 @@ const router = express.Router();
  *                   type: string
  *                   example: Bienvenido a la API
  */
-router.get('/main', saveMethodHandler);
+router.get('/main',checkJwt, saveMethodHandler);
 
-/**
- * @openapi
- * /api/users/signup:
- *   post:
- *     summary: Crea un nuevo usuario
- *     description: Añade los detalles de un nuevo usuario comprobando si existe un usuario primero con ese email.
- *     tags:
- *       - Users
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               userName:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *                 items:
- *                   type: string
- *               role:
- *                 type: string
- *                 enum: [Administrador, Usuario, Empresa, Gobierno]
- *     responses:
- *       201:
- *         description: Usuario creado exitosamente
- */
-router.post('/users/signup',validateUserFields, createUserHandler);
+//To delete this routes later
+// /**
+//  * @openapi
+//  * /api/users/signup:
+//  *   post:
+//  *     summary: Crea un nuevo usuario
+//  *     description: Añade los detalles de un nuevo usuario comprobando si existe un usuario primero con ese email.
+//  *     tags:
+//  *       - Users
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             properties:
+//  *               userName:
+//  *                 type: string
+//  *               email:
+//  *                 type: string
+//  *               password:
+//  *                 type: string
+//  *                 items:
+//  *                   type: string
+//  *               role:
+//  *                 type: string
+//  *                 enum: [Administrador, Usuario, Empresa, Gobierno]
+//  *     responses:
+//  *       201:
+//  *         description: Usuario creado exitosamente
+//  */
+// router.post('/users/signup', createUserHandler);
 
-/**
- * @openapi
- * /api/users/login:
- *   post:
- *     summary: Ruta para loguearse con un usuario
- *     description: Loguea al usuario.
- *     tags:
- *       - Users
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       201:
- *         description: Usuario creado exitosamente
- */
+// /**
+//  * @openapi
+//  * /api/users/login:
+//  *   post:
+//  *     summary: Ruta para loguearse con un usuario
+//  *     description: Loguea al usuario.
+//  *     tags:
+//  *       - Users
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             properties:
+//  *               email:
+//  *                 type: string
+//  *               password:
+//  *                 type: string
+//  *     responses:
+//  *       201:
+//  *         description: Usuario creado exitosamente
+//  */
 
-router.post('/users/login', logInHandler);
+// router.post('/users/login', logInHandler);
 
 /**
  * @openapi
@@ -126,7 +126,7 @@ router.post('/users/login', logInHandler);
  *                   email:
  *                     type: string
  */
-router.get('/users', getAllUsersHandler);
+router.get('/users',checkJwt, getAllUsersHandler);
 
 /**
  * @openapi
@@ -157,7 +157,7 @@ router.get('/users', getAllUsersHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.get('/users/:id', getUserByIdHandler);
+router.get('/users/:id',checkJwt, getUserByIdHandler);
 
 /**
  * @openapi
@@ -196,7 +196,7 @@ router.get('/users/:id', getUserByIdHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.put('/users/:id', updateUserHandler);
+router.put('/users/:id',checkJwt, updateUserHandler);
 
 /**
  * @openapi
@@ -218,7 +218,7 @@ router.put('/users/:id', updateUserHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.delete('/users/:id', deleteUserHandler);
+router.delete('/users/:id',checkJwt, deleteUserHandler);
 
 
 

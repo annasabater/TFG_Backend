@@ -1,8 +1,13 @@
 // src/controllers/user_controller.ts
-import { error } from 'console';
-import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser, logIn } from '../service/user_service.js';
-
+import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser } from '../service/user_service.js';
+import { IUser } from '../models/user_models.js';
+import { JwtPayload } from 'jsonwebtoken';
 import express, { Request, Response } from 'express';
+import { verifyRole } from '../middleware/session.js';
+
+interface RequestExt extends Request {
+    user?: string | JwtPayload;
+}
 
 export const saveMethodHandler = async (req: Request, res: Response) => {
     try {
@@ -26,12 +31,13 @@ export const createUserHandler = async (req: Request, res: Response) => {
         res.status(500).json({ message: error.message });
     }
 };
-export const getAllUsersHandler = async (req: Request, res: Response) => {
+
+export const getAllUsersHandler = async (req: RequestExt, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 10;
         const data = await getAllUsers(page, limit);
-        res.json(data);
+        res.send(data);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
@@ -40,7 +46,7 @@ export const getUserByIdHandler = async (req: Request, res: Response) => {
     try {
         const data = await getUserById(req.params.id);
         if (!data || data.isDeleted) {
-            return res.status(404).json({ message: 'Usuario no encontrado o contraseña incorrecta' });
+            return res.status(404).json({ message: 'Usuario no encontrado' });
         }
         res.json(data);
     } catch (error: any) {
@@ -49,21 +55,29 @@ export const getUserByIdHandler = async (req: Request, res: Response) => {
 };
 export const updateUserHandler = async (req: Request, res: Response) => {
     try {
+        const role = await verifyRole(req, res);
+        if(role!== '') {
+            return res.status(403).json({ message: role });
+        }
         const data = await updateUser(req.params.id, req.body);
         res.json(data);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
 };
-export const deleteUserHandler = async (req: Request, res: Response) => {
+export const deleteUserHandler = async (req: RequestExt, res: Response) => {
     try {
+        const role = await verifyRole(req, res);
+        if(role!== '') {
+            return res.status(403).json({ message: role });
+        }
         const data = await deleteUser(req.params.id);
         res.json(data);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
 };
-
+/*
 export const logInHandler = async (req: Request, res: Response) => {
     try {
         const data = await logIn(req.body.email, req.body.password);
@@ -79,3 +93,4 @@ export const logInHandler = async (req: Request, res: Response) => {
 
     }
 }
+*/

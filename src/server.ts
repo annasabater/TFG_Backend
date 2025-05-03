@@ -5,19 +5,17 @@ import userRoutes from './routes/user_routes.js'; // Nota el .js al final
 import forumRoutes from './routes/forum_routes.js'; // Nota el .js al final
 import droneRoutes from './routes/drone_routes.js'; // Nota el .js al final
 import gameRoutes from './routes/game_routes.js';
+import authRoutes from './routes/auth_routes.js';
 //import messageRoutes from './routes/message_routes.js'
 import { corsHandler } from './middleware/corsHandler.js';
 import { loggingHandler } from './middleware/loggingHandler.js';
 import { routeNotFound } from './middleware/routeNotFound.js';
-import { validateUserFields } from './middleware/userValidationSignIn.js';
-import { authMiddleware } from './middleware/authMiddleware.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 
-dotenv.config(); // Cargamos las variables de entorno desde el archivo .env
-
+dotenv.config({ path: '../.env' });// Cargamos las variables de entorno desde el archivo .env
+console.log(process.env.MONGODB_URI,process.env.SERVER_PORT,process.env.JWT_SECRET);
 const app = express();
-
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 
 // Configuración de Swagger
@@ -57,6 +55,10 @@ const swaggerOptions = {
             { 
                 name: 'Juegos', 
                 description: 'Juegos entre usuarios' ,
+            },
+            { 
+                name: 'Auth', 
+                description: 'Registro y Login de usuarios' ,
             }
           ],
         servers: [
@@ -83,6 +85,7 @@ app.use('/api', forumRoutes);
 app.use('/api', droneRoutes);
 app.use('/api', gameRoutes);
 
+app.use('/api', authRoutes); // Middleware de autenticación para todas las rutas
 // Rutes de prova
 app.get('/', (req, res) => {
     res.send('Welcome to my API');
