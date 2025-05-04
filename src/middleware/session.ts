@@ -5,82 +5,101 @@ import User, { IUser } from "../models/user_models.js";
 
 interface RequestExt extends Request {
     user?: string | JwtPayload;
+    cookies: Record<string, string>;
 }
+
+// Función auxiliar para centralizar de dónde viene el token
+const getTokenFromRequest = (req: RequestExt): string | null => {
+    // 1 Authorization header
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    if (authHeader?.toString().startsWith("Bearer ")) {
+      return authHeader.toString().split(" ").pop() as string;
+    }
+  
+    // 2 Cookie (requiere cookie-parser en tu express app)
+    if (req.cookies) {
+      // ajusta el nombre de la cookie según cómo la setees
+      if (req.cookies.token)          return req.cookies.token;
+      if (req.cookies.refreshToken)   return req.cookies.refreshToken;
+    }
+  
+    // 3 Body
+    if (req.body?.token) {
+      return req.body.token;
+    }
+  
+    // 4 Query
+    if (req.query?.token) {
+      return req.query.token as string;
+    }
+  
+    return null;
+  };
 
 const checkJwt = (req: RequestExt, res: Response, next: NextFunction) => {
     try {
-        const authHeader = req.headers.authorization 
-                        || req.headers.Authorization
-                        || req.body?.token
-                        || req.query?.token
-                        || null;
-
-        if (!authHeader) {
-            console.log('Headers recibidos:', req.headers); // Debug
-            return res.status(401).json({ 
-                message: 'SESSION_NO_VALID',
-                details: 'Token not provided in headers, body or query',
-                receivedHeaders: Object.keys(req.headers) // Para debug
-            });
-        }
-
-        // 2. Extraer el token del formato Bearer
-        const token = authHeader.toString().split(' ').pop();
-        console.log('Token extraído:', token); // Debug
+        const token = getTokenFromRequest(req);
         if (!token) {
-            return res.status(401).json({
-                message: 'SESSION_NO_VALID',
-                details: 'Invalid token format. Use: Bearer <token>'
-            });
+          return res.status(401).json({
+            message: "SESSION_NO_VALID",
+            details: "Token not provided in headers, cookies, body or query",
+            receivedHeaders: Object.keys(req.headers),
+          });
         }
-
-        // 3. Verificar el token
-        const isUser = verifyToken(`${token}`);
-        if(!isUser) {
-            return res.status(401).json({
-                message: 'SESSION_NO_VALID',
-                details: 'Token verification failed'
-            });
-        }else {
-            req.user = isUser
-            console.log(authHeader); // Debug
-            next();
+    
+        // verifyToken debería devolver el payload o null/false
+        const payload = verifyToken(token);
+        if (!payload) {
+          return res.status(401).json({
+            message: "SESSION_NO_VALID",
+            details: "Token verification failed or expired",
+          });
         }
-
-    } catch (e) {
-        console.error('JWT Error:', e);
-        return res.status(400).send('SESSION_NO_VALID');
-    }
+    
+        req.user = payload;
+        next();
+      } catch (e) {
+        console.error("JWT Error:", e);
+        return res.status(400).json({ message: "SESSION_NO_VALID" });
+      }
 };
 
 const verifyRole = async (req: RequestExt, res: Response) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) {
-            return 'Token no proporcionado en los headers, body o query';
+        const token = getTokenFromRequest(req);
+        if (!token) {
+          return "Token no proporcionado en headers, cookies, body o query";
         }
-        
-        // 2. Extraer el token del formato Bearer
-        const token = authHeader.toString().split(' ').pop();
-        const payload = verifyToken(`${token}`)
-
+    
+        const payload = verifyToken(token);
         if (!payload) {
-            return 'Token inválido o expirado';
+          return "Token inválido o expirado";
         }
-        const user = await User.findById(payload.id);
-        if(user && user.role !== 'Administrador' && user.role !== 'Gobierno') {
-            if ((payload.id !== req.params.id)){
-                // Si no es el mismo usuario y no es Admin
-                return 'No tienes permiso para hacer cambios en este usuario';
-            }else if(payload.id === req.params.id && (user && user.role !== req.body.role)) {
-                //same id but lower role
-                return 'No puedes cambiar tu propio rol';
-            }
+    
+        // Asumimos que payload tiene un campo `id`
+        const user = await User.findById((payload as JwtPayload).id) as IUser;
+        if (!user) {
+          return "Usuario no encontrado";
         }
-        return '';
-    } catch (err) {
-      return 'Token inválido o expirado'
-    }
+    
+        // Lógica de rol
+        const isAdmin = ["Administrador", "Gobierno"].includes(user.role);
+        if (!isAdmin) {
+          // Si intenta modificar a otro usuario
+          if ((payload as JwtPayload).id !== req.params.id) {
+            return "No tienes permiso para hacer cambios en este usuario";
+          }
+          // Si intenta cambiar su propio rol
+          if (user.role !== req.body.role) {
+            return "No puedes cambiar tu propio rol";
+          }
+        }
+    
+        return "";
+      } catch (err) {
+        console.error("verifyRole Error:", err);
+        return "Token inválido o expirado";
+      }
 };
 
 export { checkJwt, verifyRole };

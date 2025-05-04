@@ -1,6 +1,5 @@
 // src/controllers/user_controller.ts
 import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser } from '../service/user_service.js';
-import { IUser } from '../models/user_models.js';
 import { JwtPayload } from 'jsonwebtoken';
 import express, { Request, Response } from 'express';
 import { verifyRole } from '../middleware/session.js';
@@ -52,7 +51,7 @@ export const getUserByIdHandler = async (req: Request, res: Response) => {
         res.status(500).json({ message: error.message });
     }
 };
-export const updateUserHandler = async (req: Request, res: Response) => {
+export const updateUserHandler = async (req: RequestExt, res: Response) => {
     try {
         const role = await verifyRole(req, res);
         if(role!== '') {

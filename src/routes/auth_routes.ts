@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { registerHandler, loginHandler } from '../controllers/auth_controller.js';
+import { registerHandler, loginHandler, logoutHandler,refreshTokenHandler } from '../controllers/auth_controller.js';
+
 
 const router = Router();
 
@@ -139,6 +140,51 @@ router.post('/auth/register', registerHandler);
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/auth/login', loginHandler);
+
+/**
+ * @openapi
+ * /auth/logout:
+ *   post:
+ *     summary: Cerrar sesión
+ *     description: Cierra la sesión del usuario y elimina el token JWT.
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       200:
+ *         description: Cierre de sesión exitoso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Logout successful"
+ */
+router.post('/auth/logout', logoutHandler);
+
+
+/**
+ * @openapi
+ * /auth/refresh:
+ *   post:
+ *     summary: Refrescar el token de acceso
+ *     description: Genera un nuevo token de acceso utilizando el refresh token.
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       200:
+ *         description: Token de acceso renovado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ */
+router.post('/auth/refresh',refreshTokenHandler);
 
 
 router.post('/auth/refresh');

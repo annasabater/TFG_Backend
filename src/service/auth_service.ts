@@ -1,7 +1,7 @@
 import { IAuth } from "../models/auth_models.js"
 import User, {IUser} from "../models/user_models.js";
 import { encrypt,verify } from "../utils/bcryptHandler.js";
-import { generateToken } from "../utils/jwtHandler.js";
+import { generateRefreshToken, generateToken,verifyToken } from "../utils/jwtHandler.js";
 
 const registerUser = async (authUser:IUser) => {
     const checkIsReg = await User.findOne({email: authUser.email});
@@ -29,13 +29,31 @@ const loginUser = async ({email,password}:IAuth) => {
 
     if(!isMatch) return "INVALID_USER"; // Password is incorrect
 
-    const accestoken = generateToken(checkIsLogged._id.toString());
-    const refreshToken = generateToken(checkIsLogged._id.toString()); 
+    const accesstoken = generateToken(checkIsLogged._id.toString());
+    const refreshToken = generateRefreshToken(checkIsLogged._id.toString()); 
     const data = {
-        token: accestoken,
+        accesstoken: accesstoken,
+        refreshToken: refreshToken,
         user: checkIsLogged
     }
     return data; // User logged in successfully
 }
 
-export { registerUser, loginUser };
+const refreshToken = async (refreshToken:string) => {
+    console.log('Entro Service')
+    const decoded = verifyToken(refreshToken);
+    if(!decoded) return null; // Invalid refresh token
+
+    const user = await User.findOne({_id:decoded.id});
+    if(!user) return null; // User not found
+
+    const newRefreshToken = generateRefreshToken(user._id.toString()); 
+    const data = {
+        refreshToken: newRefreshToken,
+        user: user
+    }
+    console.log('Salgo');
+    return data; // Token refreshed successfully
+}
+
+export { registerUser, loginUser,refreshToken };

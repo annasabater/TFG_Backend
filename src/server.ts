@@ -2,6 +2,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import userRoutes from './routes/user_routes.js'; // Nota el .js al final
 import forumRoutes from './routes/forum_routes.js'; // Nota el .js al final
 import droneRoutes from './routes/drone_routes.js'; // Nota el .js al final
@@ -16,7 +17,7 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 
 dotenv.config({ path: '../.env' });// Cargamos las variables de entorno desde el archivo .env
-console.log(process.env.MONGODB_URI,process.env.SERVER_PORT,process.env.JWT_SECRET);
+
 const app = express();
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 
@@ -75,9 +76,9 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
 // Middleware
 app.use(express.json());
+app.use(cookieParser())
 app.use(loggingHandler);
 app.use(corsHandler);
 //rutas

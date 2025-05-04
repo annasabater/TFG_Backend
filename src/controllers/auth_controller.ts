@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { registerUser, loginUser } from '../service/auth_service.js';
-
+import { verifyToken } from '../utils/jwtHandler.js';
+import { getUserById } from '../service/user_service.js';
+import { generateRefreshToken } from '../utils/jwtHandler.js';
 
 const registerHandler = async ({body}:Request, res:Response) => {
     if(!body) return res.status(400).json({message:"Please provide username and password"});
@@ -21,7 +23,62 @@ const loginHandler = async ({body}:Request, res:Response) => {
     const credentials = {email:body.email,password:body.password};
     const resultUser = await loginUser(credentials);
     if(resultUser==="INVALID_USER") return res.status(401).json({message:"Invalid user or password"});
-    res.send(resultUser);
+    res.cookie("refreshToken", resultUser.refreshToken, {
+        maxAge: 365*24*60*60*1000, // 1year
+        httpOnly: true,
+    });
+    res.cookie("accessToken", resultUser.accesstoken, {
+        maxAge: 5*60*1000, // 5min
+        httpOnly: true,
+    });
+    return res.send(resultUser);
 }
 
-export { registerHandler, loginHandler };
+const refreshTokenHandler = async (req:Request, res:Response) => {
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken || req.query.refreshToken;
+    if (!refreshToken) {
+        console.error('No se recibió refresh token');
+        return res.status(401).json({ 
+            message: 'Refresh token required',
+            receivedCookies: req.cookies // Para debug
+        });
+    }
+
+    try {
+        const decoded: any = verifyToken(refreshToken);
+        console.log('Token decodificado:', decoded.id); // Debug
+
+        // Verifica que el usuario exista
+        const user = await getUserById(decoded.id);
+        if (!user) {
+            return res.status(401).json({ message: 'User not found' });
+        }
+
+        const newAccessToken = generateRefreshToken(user._id.toString());
+        
+        return res.json({ 
+            success: true,
+            refreshToken: newAccessToken 
+        });
+        
+    } catch (error: any) {
+        console.error('Error al verificar refresh token:', error.message);
+        return res.status(401).json({ 
+            message: 'Invalid refresh token',
+            error: error.message // Solo para desarrollo
+        });
+    }
+}
+
+const logoutHandler = async (req:Request, res:Response) => {
+    res.cookie("refreshToken","", {
+        maxAge: 0, 
+        httpOnly: true,
+    });
+    res.cookie("accessToken", "", {
+        maxAge: 0, 
+        httpOnly: true,
+    });
+    return res.send({message:"Logout successful"});
+};
+export { registerHandler, loginHandler,logoutHandler, refreshTokenHandler };
