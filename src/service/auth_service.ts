@@ -49,7 +49,7 @@ const refreshToken = async (refreshToken:string) => {
 
     const newRefreshToken = generateRefreshToken(user._id.toString()); 
     const data = {
-        refreshToken: newRefreshToken,
+        accesToken: newRefreshToken,
         user: user
     }
     console.log('Salgo');
