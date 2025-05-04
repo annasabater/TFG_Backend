@@ -30,6 +30,7 @@ const loginUser = async ({email,password}:IAuth) => {
     if(!isMatch) return "INVALID_USER"; // Password is incorrect
 
     const accestoken = generateToken(checkIsLogged._id.toString());
+    const refreshToken = generateToken(checkIsLogged._id.toString()); 
     const data = {
         token: accestoken,
         user: checkIsLogged

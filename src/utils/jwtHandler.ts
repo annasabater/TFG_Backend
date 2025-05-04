@@ -4,13 +4,20 @@ import { IUser } from '../models/user_models.js';
 
 const {sign, verify} = jwt;
 const JWT_SECRET = process.env.JWT_SECRET || 'tokenSecret0112';
+
 const generateToken = (id:string) => {
     // Convertimos a string y unificamos el nombre de la clave
     
     //const signature = crypto.createHash('sha256').update(user._id.toString()).digest('base64');
-    return sign({id}, JWT_SECRET,{ expiresIn: '1h' });
+    return sign({id}, JWT_SECRET,{ expiresIn: '5s' });
 };
-  
+
+const generateRefreshToken = (id:string) => {
+    // Convertimos a string y unificamos el nombre de la clave
+    
+    //const signature = crypto.createHash('sha256').update(user._id.toString()).digest('base64');
+    return sign({id}, JWT_SECRET,{ expiresIn: '1y' });
+};  
 
 const verifyToken = (token:string) => {
     try {
@@ -21,4 +28,4 @@ const verifyToken = (token:string) => {
     }
 };
 
-export {generateToken, verifyToken};
+export {generateToken,generateRefreshToken, verifyToken};
