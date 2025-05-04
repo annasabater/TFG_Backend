@@ -1,5 +1,4 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/authMiddleware.js';
 import {
   createSessionHandler,
   joinLobbyHandler,
@@ -7,7 +6,7 @@ import {
   acceptPlayersHandler
 } from '../controllers/session_controller.js';
 import { Session } from '../models/session_models.js';
-
+import { checkJwt } from '../middleware/session.js';
 const router = express.Router();
 
 /**
@@ -41,7 +40,7 @@ const router = express.Router();
  *       '401':
  *         description: No autorizado
  */
-router.post('/sessions', authMiddleware, createSessionHandler);
+router.post('/sessions', checkJwt, createSessionHandler);
 
 
 /**
@@ -72,7 +71,7 @@ router.post('/sessions', authMiddleware, createSessionHandler);
  *       '401':
  *         description: No autorizado
  */
-router.get('/sessions/open', authMiddleware, async (_req, res) => {
+router.get('/sessions/open', checkJwt, async (_req, res) => {
   const open = await Session.find({ state: 'WAITING' })
     .select('_id scenario host')
     .lean();
@@ -104,7 +103,7 @@ router.get('/sessions/open', authMiddleware, async (_req, res) => {
  *       '401':
  *         description: No autorizado
  */
-router.post('/sessions/:id/join', authMiddleware, joinLobbyHandler);
+router.post('/sessions/:id/join', checkJwt, joinLobbyHandler);
 
 
 /**
@@ -128,7 +127,7 @@ router.post('/sessions/:id/join', authMiddleware, joinLobbyHandler);
  *       '401':
  *         description: No autorizado
  */
-router.get('/sessions/pending', authMiddleware, listPendingHandler);
+router.get('/sessions/pending', checkJwt, listPendingHandler);
 
 
 /**
@@ -171,6 +170,6 @@ router.get('/sessions/pending', authMiddleware, listPendingHandler);
  *       '401':
  *         description: No autorizado
  */
-router.post('/sessions/:id/accept', authMiddleware, acceptPlayersHandler);
+router.post('/sessions/:id/accept', checkJwt, acceptPlayersHandler);
 
 export default router;
