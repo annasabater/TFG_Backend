@@ -1,15 +1,14 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { IUser } from '../models/user_models.js';
 
 const {sign, verify} = jwt;
 const JWT_SECRET = process.env.JWT_SECRET || 'tokenSecret0112';
-const generateToken = (user: IUser) => {
+const generateToken = (id:string) => {
     // Convertimos a string y unificamos el nombre de la clave
-    return sign(
-      { id: (user._id ?? '').toString() },
-      JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    
+    //const signature = crypto.createHash('sha256').update(user._id.toString()).digest('base64');
+    return sign({id}, JWT_SECRET,{ expiresIn: '1h' });
 };
   
 

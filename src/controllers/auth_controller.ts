@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { registerUser, loginUser } from '../service/auth_service.js';
-import { isStringObject } from 'util/types';
+
 
 const registerHandler = async ({body}:Request, res:Response) => {
     if(!body) return res.status(400).json({message:"Please provide username and password"});

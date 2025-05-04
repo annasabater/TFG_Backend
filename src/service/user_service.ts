@@ -1,6 +1,6 @@
 // src/services/user_service.ts
 import User, { IUser } from '../models/user_models.js';
-import { encrypt } from '../utils/bcryptHandler.js';
+import { encrypt, verify } from '../utils/bcryptHandler.js';
 
 export const saveMethod = () => {
     return 'Hola';
@@ -22,9 +22,14 @@ export const getUserById = async (id: string) => {
 export const updateUser = async (id: string, updateData: Partial<IUser>) => {
     const authUser = await User.findOne({ _id: id, isDeleted: false });
     if (!authUser) throw new Error('Usuario no encontrado o eliminado');
-    const hashedPassword = await encrypt(authUser.password);
-    updateData.password = hashedPassword; // Encriptar la nueva contraseña
-    return await User.updateOne({ _id: id, isDeleted: false }, { $set: updateData });
+    if(updateData.password !== undefined){
+        const passwordChanged = verify(updateData.password, authUser.password);
+        const hashedPassword = await encrypt(updateData.password);
+        console.log(hashedPassword)
+        updateData.password = hashedPassword; // Encriptar la nueva contraseña
+    }
+    const newUser = await User.updateOne({ _id: id, isDeleted: false }, { $set: updateData });
+    return updateData;
 };
 
 export const deleteUser = async (id: string) => {

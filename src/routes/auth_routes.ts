@@ -140,4 +140,6 @@ router.post('/auth/register', registerHandler);
  */
 router.post('/auth/login', loginHandler);
 
+
+router.post('/auth/refresh');
 export default router;

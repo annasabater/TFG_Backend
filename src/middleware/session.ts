@@ -67,14 +67,15 @@ const verifyRole = async (req: RequestExt, res: Response) => {
         if (!payload) {
             return 'Token inválido o expirado';
         }
-        // Si no es el mismo usuario y no es Admin
         const user = await User.findById(payload.id);
-        if ((payload.id !== req.params.id)){
-            if(user && user.role !== 'Administrador' && user.role !== 'Gobierno') {
+        if(user && user.role !== 'Administrador' && user.role !== 'Gobierno') {
+            if ((payload.id !== req.params.id)){
+                // Si no es el mismo usuario y no es Admin
                 return 'No tienes permiso para hacer cambios en este usuario';
+            }else if(payload.id === req.params.id && (user && user.role !== req.body.role)) {
+                //same id but lower role
+                return 'No puedes cambiar tu propio rol';
             }
-        }else if(payload.id === req.params.id && (user && user.role !== req.body.role)) {
-            return 'No puedes cambiar tu propio rol';
         }
         return '';
     } catch (err) {

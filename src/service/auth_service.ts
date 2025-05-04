@@ -29,17 +29,9 @@ const loginUser = async ({email,password}:IAuth) => {
 
     if(!isMatch) return "INVALID_USER"; // Password is incorrect
 
-    const token = generateToken({
-        _id: checkIsLogged._id,
-        userName: checkIsLogged.userName,
-        email: checkIsLogged.email,
-        password: checkIsLogged.password,
-        isDeleted: checkIsLogged.isDeleted,
-        isactive: true, // Ensure the isactive property is included
-        role: checkIsLogged.role,
-    });
+    const accestoken = generateToken(checkIsLogged._id.toString());
     const data = {
-        token,
+        token: accestoken,
         user: checkIsLogged
     }
     return data; // User logged in successfully
