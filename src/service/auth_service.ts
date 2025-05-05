@@ -22,7 +22,7 @@ const registerUser = async (authUser:IUser) => {
 
 const loginUser = async ({email,password}:IAuth) => {
     const checkIsLogged = await User.findOne({email});
-    if(!checkIsLogged) return "INVALID_USER"; // User not found or deleted
+    if(!checkIsLogged || checkIsLogged.isDeleted) return "INVALID_USER"; // User not found or deleted
 
     const passwordHash = checkIsLogged.password;
     const isMatch = await verify(password,passwordHash);

@@ -52,8 +52,18 @@ export const addReviewToDrone = async (droneId: string, userId: string, rating: 
     return drone;
 };
 
+// Validar que el usuario no esté eliminado
+const validateUserNotDeleted = async (userId: string) => {
+    const user = await User.findById(userId);
+    if (!user || user.isDeleted) {
+        throw new Error('Usuario no encontrado o eliminado');
+    }
+};
+
 // Permite que compradores y vendedores se contacten
 export const sendMessage = async (senderId: string, receiverId: string, content: string) => {
+    await validateUserNotDeleted(senderId);
+    await validateUserNotDeleted(receiverId);
     const message = new Message({ senderId, receiverId, content });
     return await message.save();
 };
@@ -70,6 +80,8 @@ export const getMessages = async (userId: string, contactId: string) => {
 
 // Crea una orden de compra
 export const createOrder = async (droneId: string, buyerId: string, sellerId: string) => {
+    await validateUserNotDeleted(buyerId);
+    await validateUserNotDeleted(sellerId);
     const order = new Order({ droneId, buyerId, sellerId });
     return await order.save();
 };

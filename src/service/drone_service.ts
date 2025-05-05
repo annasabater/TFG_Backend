@@ -1,8 +1,17 @@
 import Drone, { IDrone } from '../models/drone_models.js';
 import User from '../models/user_models.js';
 
+// Add user validation to ensure the user is not deleted
+const validateUserNotDeleted = async (userId: string) => {
+    const user = await User.findById(userId);
+    if (!user || user.isDeleted) {
+        throw new Error('Usuario no encontrado o eliminado');
+    }
+};
+
 // Permite que los usuarios publiquen drones en venta o alquiler
 export const createDrone = async (droneData: IDrone) => {
+    await validateUserNotDeleted(droneData.ownerId);
     const drone = new Drone(droneData);
     await drone.save();
     return drone;
