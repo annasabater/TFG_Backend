@@ -14,9 +14,12 @@ const registerHandler = async ({body}:Request, res:Response) => {
 
     const user = await registerUser(body);
     if(!user) return res.status(500).json({message:"Error registering user"});
-    
 
-    return res.status(201).json({message:"User registered successfully", user});    
+    if (typeof user === "string") {
+        return res.status(400).json({ message: "User already exists" });
+    }
+    const { password, ...userWithoutPassword } = user.toObject();
+    return res.status(201).json({ message: "User registered successfully", user: userWithoutPassword });
 }
 
 const loginHandler = async ({body}:Request, res:Response) => {
@@ -31,7 +34,12 @@ const loginHandler = async ({body}:Request, res:Response) => {
         maxAge: 5*60*1000, // 5min
         httpOnly: true,
     });
-    return res.send(resultUser);
+    const { password, ...userWithoutPassword } = resultUser.user.toObject();
+    return res.json({
+        accesstoken: resultUser.accesstoken,
+        refreshToken: resultUser.refreshToken,
+        user: userWithoutPassword
+    });
 }
 
 const refreshTokenHandler = async (req:Request, res:Response) => {

@@ -35,11 +35,14 @@ export const getAllUsersHandler = async (req: RequestExt, res: Response) => {
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 10;
         const data = await getAllUsers(page, limit);
-        res.send(data);
+        // Modificación: Filtrar contraseñas antes de enviar la respuesta
+        const usersWithoutPasswords = data.map(({ password, ...user }) => user);
+        res.json(usersWithoutPasswords);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
 };
+
 export const getUserByIdHandler = async (req: Request, res: Response) => {
     try {
         const data = await getUserById(req.params.id);
