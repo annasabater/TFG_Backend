@@ -40,8 +40,6 @@ export interface IRating {
     comment: string;
 }
 
-
-
 // Modelos
 const Drone = mongoose.model('Drone', droneSchema);
 

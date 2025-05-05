@@ -1,3 +1,4 @@
+//src/utils/jwtHandler.ts
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { IUser } from '../models/user_models.js';
@@ -7,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'tokenSecret0112';
 
 const generateToken = (id:string) => {
     // Convertimos a string y unificamos el nombre de la clave
-    return sign({id,valid:true}, JWT_SECRET,{ expiresIn: '60s' });
+    return sign({id,valid:true}, JWT_SECRET,{ expiresIn: '1h' });
 };
 
 const generateRefreshToken = (id:string) => {
