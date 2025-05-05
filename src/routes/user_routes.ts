@@ -9,7 +9,7 @@ import {
     updateUserHandler,
     deleteUserHandler
 } from '../controllers/user_controller.js';
-import { checkJwt } from '../middleware/session.js';
+import { checkJwt, checkRole } from '../middleware/session.js';
 
 const router = express.Router();
 
@@ -113,7 +113,7 @@ router.get('/main',checkJwt, saveMethodHandler);
  *       200:
  *         description: Éxito
  */
-router.get('/users',checkJwt, getAllUsersHandler);
+router.get('/users', checkJwt, getAllUsersHandler);
 
 /**
  * @openapi
@@ -134,7 +134,7 @@ router.get('/users',checkJwt, getAllUsersHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.get('/users/:id',checkJwt, getUserByIdHandler);
+router.get('/users/:id', checkJwt, getUserByIdHandler);
 
 /**
  * @openapi
@@ -168,7 +168,7 @@ router.get('/users/:id',checkJwt, getUserByIdHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.put('/users/:id',checkJwt, updateUserHandler);
+router.put('/users/:id',checkJwt, checkRole(['Administrador']), updateUserHandler);
 
 /**
  * @openapi
@@ -189,6 +189,6 @@ router.put('/users/:id',checkJwt, updateUserHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.delete('/users/:id',checkJwt, deleteUserHandler);
+router.delete('/users/:id',checkJwt, checkRole(['Administrador']), deleteUserHandler);
 
 export default router;

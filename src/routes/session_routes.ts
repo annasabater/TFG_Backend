@@ -6,7 +6,7 @@ import {
   acceptPlayersHandler
 } from '../controllers/session_controller.js';
 import { Session } from '../models/session_models.js';
-import { checkJwt } from '../middleware/session.js';
+import { checkJwt, checkRole } from '../middleware/session.js';
 const router = express.Router();
 
 /**
@@ -40,7 +40,7 @@ const router = express.Router();
  *       '401':
  *         description: No autorizado
  */
-router.post('/sessions', checkJwt, createSessionHandler);
+router.post('/sessions', checkJwt, checkRole(['Usuario', 'Administrador']), createSessionHandler);
 
 
 /**
@@ -103,7 +103,7 @@ router.get('/sessions/open', checkJwt, async (_req, res) => {
  *       '401':
  *         description: No autorizado
  */
-router.post('/sessions/:id/join', checkJwt, joinLobbyHandler);
+router.post('/sessions/:id/join', checkJwt, checkRole(['Usuario', 'Administrador']), joinLobbyHandler);
 
 
 /**
@@ -127,7 +127,7 @@ router.post('/sessions/:id/join', checkJwt, joinLobbyHandler);
  *       '401':
  *         description: No autorizado
  */
-router.get('/sessions/pending', checkJwt, listPendingHandler);
+router.get('/sessions/pending', checkJwt, checkRole(['Administrador']), listPendingHandler);
 
 
 /**
@@ -170,6 +170,6 @@ router.get('/sessions/pending', checkJwt, listPendingHandler);
  *       '401':
  *         description: No autorizado
  */
-router.post('/sessions/:id/accept', checkJwt, acceptPlayersHandler);
+router.post('/sessions/:id/accept', checkJwt, checkRole(['Administrador']), acceptPlayersHandler);
 
 export default router;

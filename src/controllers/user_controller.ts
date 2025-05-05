@@ -1,8 +1,9 @@
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, getAllUsers, getUserById, updateUser, deleteUser } from '../service/user_service.js';
+import { saveMethod, createUser, updateUser, deleteUser } from '../service/user_service.js';
 import { JwtPayload } from 'jsonwebtoken';
 import express, { Request, Response } from 'express';
 import { verifyRole } from '../middleware/session.js';
+import User from '../models/user_models.js';
 
 interface RequestExt extends Request {
     user?: string | JwtPayload;
@@ -30,30 +31,30 @@ export const createUserHandler = async (req: Request, res: Response) => {
     }
 };
 
-export const getAllUsersHandler = async (req: RequestExt, res: Response) => {
+export const getAllUsersHandler = async (req: Request, res: Response) => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
-        const data = await getAllUsers(page, limit);
-        // Modificación: Filtrar contraseñas antes de enviar la respuesta
-        const usersWithoutPasswords = data.map(({ password, ...user }) => user);
-        res.json(usersWithoutPasswords);
-    } catch (error: any) {
-        res.status(500).json({ message: error.message });
+        const users = await User.find({}, 'userName email role');
+        res.status(200).json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Error fetching users' });
     }
 };
 
 export const getUserByIdHandler = async (req: Request, res: Response) => {
     try {
-        const data = await getUserById(req.params.id);
-        if (!data || data.isDeleted) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
+        const { id } = req.params;
+        const user = await User.findById(id, 'userName email role');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
-        res.json(data);
-    } catch (error: any) {
-        res.status(500).json({ message: error.message });
+        res.status(200).json(user);
+    } catch (error) {
+        console.error('Error fetching user by ID:', error);
+        res.status(500).json({ message: 'Error fetching user by ID' });
     }
 };
+
 export const updateUserHandler = async (req: RequestExt, res: Response) => {
     try {
         const role = await verifyRole(req, res);
@@ -66,6 +67,7 @@ export const updateUserHandler = async (req: RequestExt, res: Response) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 export const deleteUserHandler = async (req: RequestExt, res: Response) => {
     try {
         const role = await verifyRole(req, res);
@@ -78,7 +80,6 @@ export const deleteUserHandler = async (req: RequestExt, res: Response) => {
         res.status(500).json({ message: error.message });
     }
 };
-
 
 /*
 export const logInHandler = async (req: Request, res: Response) => {

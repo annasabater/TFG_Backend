@@ -12,6 +12,14 @@ const userSchema = new mongoose.Schema({
     }
 });
 
+userSchema.methods.toJSON = function () {
+    const user = this.toObject();
+    delete user.password;
+    delete user.isDeleted;
+    delete user.__v;
+    return user;
+};
+
 export interface IUser{
     _id?: mongoose.Types.ObjectId; // id de mongo
     isactive:boolean; //is active true by default
