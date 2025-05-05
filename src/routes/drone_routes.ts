@@ -10,6 +10,8 @@ import {
   getDronesByPriceRangeHandler
 } from '../controllers/drone_controller.js';
 
+import { generalRateLimiter } from '../middleware/rateLimiter.js';
+
 const router = Router();
 
 /**
@@ -41,7 +43,7 @@ const router = Router();
  *       200:
  *         description: Lista de drones obtenida correctamente
  */
-router.get('/drones', getDronesHandler);
+router.get('/drones',generalRateLimiter, getDronesHandler);
 
 /**
  * @openapi
@@ -63,7 +65,7 @@ router.get('/drones', getDronesHandler);
  *       404:
  *         description: Dron no encontrado
  */
-router.get('/drones/:id', getDroneByIdHandler);
+router.get('/drones/:id',generalRateLimiter, getDroneByIdHandler);
 
 /**
  * @openapi
@@ -121,7 +123,7 @@ router.get('/drones/:id', getDroneByIdHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/drones', createDroneHandler);
+router.post('/drones',generalRateLimiter, createDroneHandler);
 
 
 /**
@@ -173,7 +175,7 @@ router.post('/drones', createDroneHandler);
  *       404:
  *         description: Dron no encontrado
  */
-router.put('/drones/:id', updateDroneHandler);
+router.put('/drones/:id',generalRateLimiter, updateDroneHandler);
 
 /**
  * @openapi
@@ -195,7 +197,7 @@ router.put('/drones/:id', updateDroneHandler);
  *       404:
  *         description: Dron no encontrado
  */
-router.delete('/drones/:id', deleteDroneHandler);
+router.delete('/drones/:id',generalRateLimiter, deleteDroneHandler);
 
 /**
  * @openapi
@@ -236,7 +238,7 @@ router.delete('/drones/:id', deleteDroneHandler);
  *       404:
  *         description: Dron o usuario no encontrado
  */
-router.post('/drones/:id/review', addDroneReviewHandler);
+router.post('/drones/:id/review',generalRateLimiter, addDroneReviewHandler);
 
 /**
  * @openapi
@@ -256,7 +258,7 @@ router.post('/drones/:id/review', addDroneReviewHandler);
  *       200:
  *         description: Lista de drones en la categoría especificada
  */
-router.get('/drones/category/:category', getDronesByCategoryHandler);
+router.get('/drones/category/:category',generalRateLimiter, getDronesByCategoryHandler);
 
 /**
  * @openapi
@@ -284,6 +286,6 @@ router.get('/drones/category/:category', getDronesByCategoryHandler);
  *       400:
  *         description: Parámetros de precio inválidos
  */
-router.get('/drones/price', getDronesByPriceRangeHandler);
+router.get('/drones/price',generalRateLimiter, getDronesByPriceRangeHandler);
 
 export default router;

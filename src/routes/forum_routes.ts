@@ -4,6 +4,7 @@ import { createEntryHandler,
          getAllForumHandler,
          getEntryByIdHandler,
          updateEntryHandler } from '../controllers/forum_controller.js';
+import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ const router = express.Router();
  *       201:
  *         description: Entrada creada exitosamente
  */
-router.post('/forum', createEntryHandler);
+router.post('/forum',generalRateLimiter, createEntryHandler);
 
 /**
  * @openapi
@@ -55,7 +56,7 @@ router.post('/forum', createEntryHandler);
  *       200:
  *         description: List of all forums
  */
-router.get('/forum', getAllForumHandler);
+router.get('/forum',generalRateLimiter, getAllForumHandler);
 
 /**
  * @openapi
@@ -86,7 +87,7 @@ router.get('/forum', getAllForumHandler);
  *       404:
  *         description: Entrada no encontrada
  */
-router.get('/forum/:id', getEntryByIdHandler);
+router.get('/forum/:id',generalRateLimiter, getEntryByIdHandler);
 
 /**
  * @openapi
@@ -119,7 +120,7 @@ router.get('/forum/:id', getEntryByIdHandler);
  *       404:
  *         description: Entrada no encontrada
  */
-router.put('/forum/:id', updateEntryHandler);
+router.put('/forum/:id',generalRateLimiter, updateEntryHandler);
 
 /**
  * @openapi
@@ -141,6 +142,6 @@ router.put('/forum/:id', updateEntryHandler);
  *       404:
  *         description: Entrada no encontrada
  */
-router.delete('/forum/:id', deleteEntryHandler);
+router.delete('/forum/:id',generalRateLimiter, deleteEntryHandler);
 
 export default router;

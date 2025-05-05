@@ -1,6 +1,7 @@
 // src/routes/game_routes.ts
 import express from 'express';
 import { createGameHandler, getAllGamesHandler, getGameByIdHandler, joinGameHandler, getGamePlayersHandler, addScoreHandler, getGameScoresHandler } from '../controllers/game_controller.js';
+import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ const router = express.Router();
  *       201:
  *         description: Juego creado exitosamente
  */
-router.post('/games', createGameHandler);
+router.post('/games',generalRateLimiter, createGameHandler);
 
 /**
  * @swagger
@@ -44,7 +45,7 @@ router.post('/games', createGameHandler);
  *       200:
  *         description: Lista de juegos
  */
-router.get('/games', getAllGamesHandler);
+router.get('/games',generalRateLimiter, getAllGamesHandler);
 
 /**
  * @swagger
@@ -64,7 +65,7 @@ router.get('/games', getAllGamesHandler);
  *       404:
  *         description: Juego no encontrado
  */
-router.get('/games/:id', getGameByIdHandler);
+router.get('/games/:id',generalRateLimiter, getGameByIdHandler);
 
 /**
  * @swagger
@@ -95,7 +96,7 @@ router.get('/games/:id', getGameByIdHandler);
  *       400:
  *         description: Juego lleno o usuario ya está en el juego
  */
-router.post('/games/:id/join', joinGameHandler);
+router.post('/games/:id/join',generalRateLimiter, joinGameHandler);
 
 /**
  * @swagger
@@ -113,7 +114,7 @@ router.post('/games/:id/join', joinGameHandler);
  *       200:
  *         description: Lista de jugadores en el juego
  */
-router.get('/games/:id/players', getGamePlayersHandler);
+router.get('/games/:id/players',generalRateLimiter, getGamePlayersHandler);
 
 /**
  * @swagger
@@ -145,7 +146,7 @@ router.get('/games/:id/players', getGamePlayersHandler);
  *       200:
  *         description: Puntuación registrada
  */
-router.post('/games/:id/score', addScoreHandler);
+router.post('/games/:id/score',generalRateLimiter, addScoreHandler);
 
 /**
  * @swagger
@@ -163,6 +164,6 @@ router.post('/games/:id/score', addScoreHandler);
  *       200:
  *         description: Lista de puntuaciones del juego
  */
-router.get('/games/:id/scores', getGameScoresHandler);
+router.get('/games/:id/scores',generalRateLimiter, getGameScoresHandler);
 
 export default router;

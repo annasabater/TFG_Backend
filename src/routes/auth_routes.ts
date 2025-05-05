@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { registerHandler, loginHandler, logoutHandler,refreshTokenHandler } from '../controllers/auth_controller.js';
-
+import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -97,7 +97,7 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/auth/register', registerHandler);
+router.post('/auth/register',authRateLimiter, registerHandler);
 
 /**
  * @openapi
@@ -139,7 +139,7 @@ router.post('/auth/register', registerHandler);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/auth/login', loginHandler);
+router.post('/auth/login',authRateLimiter, loginHandler);
 
 /**
  * @openapi
@@ -161,7 +161,7 @@ router.post('/auth/login', loginHandler);
  *                   type: string
  *                   example: "Logout successful"
  */
-router.post('/auth/logout', logoutHandler);
+router.post('/auth/logout',authRateLimiter, logoutHandler);
 
 
 /**
@@ -184,7 +184,7 @@ router.post('/auth/logout', logoutHandler);
  *                   type: string
  *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  */
-router.post('/auth/refresh',refreshTokenHandler);
+router.post('/auth/refresh',authRateLimiter,refreshTokenHandler);
 
 
 router.post('/auth/refresh');
