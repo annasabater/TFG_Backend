@@ -58,7 +58,7 @@ const router = Router();
  *           type: string
  *           example: "Descripción del error"
  *
- * /auth/register:
+ * /api/auth/register:
  *   post:
  *     summary: Registrar un nuevo usuario
  *     description: Crea un usuario con nombre de usuario, correo y contraseña.
@@ -101,7 +101,7 @@ router.post('/auth/register', registerHandler);
 
 /**
  * @openapi
- * /auth/login:
+ * /api/auth/login:
  *   post:
  *     summary: Iniciar sesión
  *     description: Autentica al usuario y devuelve un token JWT.
@@ -143,7 +143,7 @@ router.post('/auth/login', loginHandler);
 
 /**
  * @openapi
- * /auth/logout:
+ * /api/auth/logout:
  *   post:
  *     summary: Cerrar sesión
  *     description: Cierra la sesión del usuario y elimina el token JWT.
@@ -166,7 +166,7 @@ router.post('/auth/logout', logoutHandler);
 
 /**
  * @openapi
- * /auth/refresh:
+ * /api/auth/refresh:
  *   post:
  *     summary: Refrescar el token de acceso
  *     description: Genera un nuevo token de acceso utilizando el refresh token.

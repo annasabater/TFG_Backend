@@ -6,7 +6,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /games:
+ * /api/games:
  *   post:
  *     summary: Crear un nuevo juego
  *     tags: [Juegos]
@@ -36,7 +36,7 @@ router.post('/games', createGameHandler);
 
 /**
  * @swagger
- * /games:
+ * /api/games:
  *   get:
  *     summary: Obtener todos los juegos
  *     tags: [Juegos]
@@ -48,7 +48,7 @@ router.get('/games', getAllGamesHandler);
 
 /**
  * @swagger
- * /games/{id}:
+ * /api/games/{id}:
  *   get:
  *     summary: Obtener detalles de un juego específico
  *     tags: [Juegos]
@@ -68,7 +68,7 @@ router.get('/games/:id', getGameByIdHandler);
 
 /**
  * @swagger
- * /games/{id}/join:
+ * /api/games/{id}/join:
  *   post:
  *     summary: Unirse a un juego
  *     tags: [Juegos]
@@ -99,7 +99,7 @@ router.post('/games/:id/join', joinGameHandler);
 
 /**
  * @swagger
- * /games/{id}/players:
+ * /api/games/{id}/players:
  *   get:
  *     summary: Obtener jugadores de un juego
  *     tags: [Juegos]
@@ -117,7 +117,7 @@ router.get('/games/:id/players', getGamePlayersHandler);
 
 /**
  * @swagger
- * /games/{id}/score:
+ * /api/games/{id}/score:
  *   post:
  *     summary: Registrar puntuación en un juego
  *     tags: [Juegos]
@@ -149,7 +149,7 @@ router.post('/games/:id/score', addScoreHandler);
 
 /**
  * @swagger
- * /games/{id}/scores:
+ * /api/games/{id}/scores:
  *   get:
  *     summary: Obtener ranking de un juego
  *     tags: [Juegos]
