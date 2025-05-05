@@ -82,6 +82,11 @@ const verifyRole = async (req: RequestExt, res: Response) => {
             return "Usuario no encontrado";
         }
 
+        // Permitir que los usuarios cambien sus propias credenciales
+        if ((payload as JwtPayload).id === req.params.id) {
+            return ""; // Permitir la acción
+        }
+
         // Lógica de rol
         const isAdmin = ["Administrador", "Gobierno"].includes(user.role);
         if (!isAdmin) {
@@ -102,35 +107,6 @@ const verifyRole = async (req: RequestExt, res: Response) => {
     }
 };
 
-const checkRole = (roles: string[]) => {
-    return async (req: RequestExt, res: Response, next: NextFunction) => {
-        try {
-            const token = getTokenFromRequest(req);
-            if (!token) {
-                return res.status(401).json({ message: "Token no proporcionado" });
-            }
 
-            const payload = verifyToken(token);
-            if (!payload) {
-                return res.status(401).json({ message: "Token inválido o expirado" });
-            }
 
-            const user = await User.findById((payload as JwtPayload).id);
-            if (!user) {
-                return res.status(404).json({ message: "Usuario no encontrado" });
-            }
-
-            if (!roles.includes(user.role)) {
-                return res.status(403).json({ message: "No tienes permisos para realizar esta acción" });
-            }
-
-            req.user = payload;
-            next();
-        } catch (error) {
-            console.error("Error en checkRole:", error);
-            res.status(500).json({ message: "Error interno del servidor" });
-        }
-    };
-};
-
-export { checkJwt, verifyRole, checkRole };
+export { checkJwt, verifyRole };

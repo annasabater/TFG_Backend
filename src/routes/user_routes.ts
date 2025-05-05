@@ -9,7 +9,7 @@ import {
     updateUserHandler,
     deleteUserHandler
 } from '../controllers/user_controller.js';
-import { checkJwt, checkRole } from '../middleware/session.js';
+import { checkJwt, verifyRole } from '../middleware/session.js';
 
 const router = express.Router();
 
@@ -168,7 +168,7 @@ router.get('/users/:id', checkJwt, getUserByIdHandler);
  *       404:
  *         description: Usuario no encontrado
  */
-router.put('/users/:id',checkJwt, checkRole(['Administrador']), updateUserHandler);
+router.put('/users/:id',checkJwt, updateUserHandler);
 
 /**
  * @openapi
@@ -189,6 +189,6 @@ router.put('/users/:id',checkJwt, checkRole(['Administrador']), updateUserHandle
  *       404:
  *         description: Usuario no encontrado
  */
-router.delete('/users/:id',checkJwt, checkRole(['Administrador']), deleteUserHandler);
+router.delete('/users/:id',checkJwt, deleteUserHandler);
 
 export default router;
