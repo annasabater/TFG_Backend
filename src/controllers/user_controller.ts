@@ -33,7 +33,14 @@ export const createUserHandler = async (req: Request, res: Response) => {
 
 export const getAllUsersHandler = async (req: Request, res: Response) => {
     try {
-        const users = await User.find({}, 'userName email role');
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const skip = (page - 1) * limit;
+
+        const users = await User.find({ isDeleted: false }, 'userName email role')
+            .skip(skip)
+            .limit(limit);
+
         res.status(200).json(users);
     } catch (error) {
         console.error('Error fetching users:', error);
