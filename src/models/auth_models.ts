@@ -1,5 +1,4 @@
-
-
+//src/models/auth_models.ts
 export interface IAuth {
     email: string;
     password: string;

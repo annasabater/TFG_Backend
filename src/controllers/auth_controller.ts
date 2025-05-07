@@ -31,7 +31,7 @@ const loginHandler = async ({body}:Request, res:Response) => {
         httpOnly: true,
     });
     res.cookie("accessToken", resultUser.accesstoken, {
-        maxAge: 5*60*1000, // 5min
+        maxAge: 15*60*1000, // 15min
         httpOnly: true,
     });
     const { password, ...userWithoutPassword } = resultUser.user.toObject();

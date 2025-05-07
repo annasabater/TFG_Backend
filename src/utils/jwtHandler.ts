@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'tokenSecret0112';
 
 const generateToken = (id:string) => {
     // Convertimos a string y unificamos el nombre de la clave
-    return sign({id,valid:true}, JWT_SECRET,{ expiresIn: '1h' });
+    return sign({id,valid:true}, JWT_SECRET,{ expiresIn: '15m' });
 };
 
 const generateRefreshToken = (id:string) => {

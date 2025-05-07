@@ -1,3 +1,4 @@
+//src/service/auth_service.ts
 import { IAuth } from "../models/auth_models.js"
 import User, {IUser} from "../models/user_models.js";
 import { encrypt,verify } from "../utils/bcryptHandler.js";

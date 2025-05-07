@@ -1,3 +1,4 @@
+//src/middleware/corsHandler.ts
 import { Request, Response, NextFunction } from 'express';
 
 export function corsHandler(req: Request, res: Response, next: NextFunction) {
