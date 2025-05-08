@@ -1,7 +1,7 @@
 # Prova API
 
 ## Descripció
-Una API per a un servei d'una app de drons, desenvolupada en Node.js amb TypeScript, utilitzant Express, Mongoose per a la gestió de dades en MongoDB, protecció de les routes amb Auth i Auth2.0 i encriptació de dades escencials amb JWT. A més, s'inclou documentació amb Swagger.
+Una API per a un servei d'una app de drons, desenvolupada en Node.js amb TypeScript, utilitzant Express, Mongoose per a la gestió de dades en MongoDB, protecció de les routes amb Auth i encriptació de dades escencials amb JWT. A més, s'inclou documentació amb Swagger.
 
 ## Requisits previs
 Abans d'executar el projecte, assegura't de tenir instal·lat:
