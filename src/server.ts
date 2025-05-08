@@ -10,6 +10,7 @@ import forumRoutes from './routes/forum_routes.js';
 import droneRoutes from './routes/drone_routes.js';
 import gameRoutes from './routes/game_routes.js';
 import authRoutes from './routes/auth_routes.js';
+import messageRoutes from './routes/message_routes.js';
 import sessionRoutes from './routes/session_routes.js';
 import { corsHandler } from './middleware/corsHandler.js';
 import { loggingHandler } from './middleware/loggingHandler.js';
@@ -93,6 +94,7 @@ app.use('/api', droneRoutes);
 app.use('/api', gameRoutes);
 app.use('/api', sessionRoutes);
 app.use('/api', authRoutes);
+app.use('/api', messageRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {
@@ -163,6 +165,31 @@ profNsp.on('connection', socket => {
     jocsNsp.to(sessionId).emit('game_started', { sessionId });
   });
 });
+
+// --- Namespace de chat entre usuarios ---
+export const chatNsp = io.of('/chat');
+
+chatNsp.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+    if (!token) throw new Error('No token');
+    const payload = verifyToken(token);
+    if (!payload) throw new Error('Invalid token');
+    const user = await User.findById((payload as any).id);
+    if (!user || user.isDeleted) throw new Error('Unauthorized');
+    socket.data.userId = user._id.toString();
+    next();
+  } catch {
+    next(new Error('Authentication error'));
+  }
+});
+
+chatNsp.on('connection', socket => {
+  const uid = socket.data.userId;
+  socket.join(uid);  // cada usuario en su “room”
+  console.log(` Usuario ${uid} conectado al chat`);
+});
+
 
 httpServer.listen(LOCAL_PORT, () => {
   console.log(`API y WS corriendo en puerto ${LOCAL_PORT}`);

@@ -18,6 +18,7 @@ import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
+
 /**
  * @swagger
  * tags:
@@ -251,4 +252,93 @@ router.get('/drones/category/:category',generalRateLimiter, getDronesByCategoryH
  */
 router.get('/drones/price',generalRateLimiter, getDronesByPriceRangeHandler);
 
+/**
+ * @swagger
+ * tags:
+ *   name: Messages
+ *   description: Mensajería entre usuarios
+ */
+
+/**
+ * @swagger
+ * /api/messages:
+ *   post:
+ *     summary: Enviar un mensaje
+ *     tags: [Messages]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - senderId
+ *               - receiverId
+ *               - content
+ *             properties:
+ *               senderId:
+ *                 type: string
+ *                 description: ObjectId del remitente
+ *               receiverId:
+ *                 type: string
+ *                 description: ObjectId del destinatario
+ *               content:
+ *                 type: string
+ *                 description: Texto del mensaje
+ *     responses:
+ *       201:
+ *         description: Mensaje creado y emitido por WS
+ *       500:
+ *         description: Error al enviar mensaje
+ */
+router.post('/messages', generalRateLimiter, sendMessageHandler);
+
+/**
+ * @swagger
+ * /api/messages/{userId}/{contactId}:
+ *   get:
+ *     summary: Obtener historial de mensajes entre dos usuarios
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario autenticado
+ *       - in: path
+ *         name: contactId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del otro usuario
+ *     responses:
+ *       200:
+ *         description: Lista de mensajes ordenada cronológicamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   senderId:
+ *                     type: string
+ *                   receiverId:
+ *                     type: string
+ *                   content:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *       500:
+ *         description: Error al obtener mensajes
+ */
+router.get(
+  '/messages/:userId/:contactId',
+  generalRateLimiter,
+  getMessagesHandler
+);
+
 export default router;
+

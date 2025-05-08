@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { chatNsp } from '../server.js';
 import Drone from '../models/message_models.js';
 import mongoose from 'mongoose';
 import {
@@ -147,12 +148,20 @@ export const addDroneReviewHandler = async (req: Request, res: Response) => {
 export const sendMessageHandler = async (req: Request, res: Response) => {
   try {
     const { senderId, receiverId, content } = req.body;
+    // Guarda en BD
     const message = await sendMessage(senderId, receiverId, content);
+
+    // Emite al receptor y al propio emisor
+    chatNsp.to(receiverId).emit('new_message', message);
+    chatNsp.to(senderId).emit('new_message', message);
+
+    // Devuelve la respuesta HTTP
     res.status(201).json(message);
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Error al enviar mensaje' });
   }
 };
+
 
 // Obtener historial de mensajes
 export const getMessagesHandler = async (req: Request, res: Response) => {
