@@ -1,24 +1,26 @@
 import express from 'express';
 import {
   createDroneHandler,
-  deleteDroneHandler,
   getDronesHandler,
   getDroneByIdHandler,
   updateDroneHandler,
+  deleteDroneHandler,
   addDroneReviewHandler,
   getDronesByCategoryHandler,
   getDronesByPriceRangeHandler,
   sendMessageHandler,
   getMessagesHandler,
+  getConversationsHandler,
+  createOrderHandler,
   getUserOrdersHandler,
-  getUserPaymentsHandler,
-  createOrderHandler
+  processPaymentHandler,
+  getUserPaymentsHandler
 } from '../controllers/message_controller.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-
+// ----------------- DRONES -----------------
 /**
  * @swagger
  * tags:
@@ -36,7 +38,7 @@ const router = express.Router();
  *       200:
  *         description: Lista de drones
  */
-router.get('/drones',generalRateLimiter, getDronesHandler);
+router.get('/drones', generalRateLimiter, getDronesHandler);
 
 /**
  * @swagger
@@ -56,7 +58,7 @@ router.get('/drones',generalRateLimiter, getDronesHandler);
  *       404:
  *         description: Dron no encontrado
  */
-router.get('/drones/:id',generalRateLimiter, getDroneByIdHandler);
+router.get('/drones/:id', generalRateLimiter, getDroneByIdHandler);
 
 /**
  * @swagger
@@ -69,56 +71,14 @@ router.get('/drones/:id',generalRateLimiter, getDroneByIdHandler);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - id
- *               - sellerId
- *               - name
- *               - model
- *               - price
- *               - description
- *               - type
- *               - condition
- *               - location
- *               - contact
- *               - category
- *             properties:
- *               id:
- *                 type: string
- *               sellerId:
- *                 type: string
- *                 description: ObjectId del usuario vendedor
- *               name:
- *                 type: string
- *               model:
- *                 type: string
- *               price:
- *                 type: number
- *               description:
- *                 type: string
- *               type:
- *                 type: string
- *                 enum: [venta, alquiler]
- *               condition:
- *                 type: string
- *                 enum: [nuevo, usado]
- *               location:
- *                 type: string
- *               contact:
- *                 type: string
- *               category:
- *                 type: string
- *               images:
- *                 type: array
- *                 items:
- *                   type: string
+ *             $ref: '#/components/schemas/Drone'
  *     responses:
  *       201:
  *         description: Dron creado
  *       400:
  *         description: Datos inválidos
  */
-router.post('/drones',generalRateLimiter, createDroneHandler);
+router.post('/drones', generalRateLimiter, createDroneHandler);
 
 /**
  * @swagger
@@ -136,21 +96,14 @@ router.post('/drones',generalRateLimiter, createDroneHandler);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               model:
- *                 type: string
- *               price:
- *                 type: number
+ *             $ref: '#/components/schemas/DroneUpdate'
  *     responses:
  *       200:
  *         description: Dron actualizado
  *       404:
  *         description: Dron no encontrado
  */
-router.put('/drones/:id',generalRateLimiter, updateDroneHandler);
+router.put('/drones/:id', generalRateLimiter, updateDroneHandler);
 
 /**
  * @swagger
@@ -170,7 +123,7 @@ router.put('/drones/:id',generalRateLimiter, updateDroneHandler);
  *       404:
  *         description: Dron no encontrado
  */
-router.delete('/drones/:id',generalRateLimiter, deleteDroneHandler);
+router.delete('/drones/:id', generalRateLimiter, deleteDroneHandler);
 
 /**
  * @swagger
@@ -179,8 +132,8 @@ router.delete('/drones/:id',generalRateLimiter, deleteDroneHandler);
  *     summary: Agregar reseña a un dron
  *     tags: [Drones]
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -189,25 +142,14 @@ router.delete('/drones/:id',generalRateLimiter, deleteDroneHandler);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - userId
- *               - rating
- *               - comment
- *             properties:
- *               userId:
- *                 type: string
- *               rating:
- *                 type: number
- *               comment:
- *                 type: string
+ *             $ref: '#/components/schemas/Review'
  *     responses:
  *       200:
  *         description: Reseña agregada
  *       404:
  *         description: Dron o usuario no encontrado
  */
-router.post('/drones/:id/review',generalRateLimiter, addDroneReviewHandler);
+router.post('/drones/:id/review', generalRateLimiter, addDroneReviewHandler);
 
 /**
  * @swagger
@@ -225,7 +167,7 @@ router.post('/drones/:id/review',generalRateLimiter, addDroneReviewHandler);
  *       200:
  *         description: Lista de drones en la categoría
  */
-router.get('/drones/category/:category',generalRateLimiter, getDronesByCategoryHandler);
+router.get('/drones/category/:category', generalRateLimiter, getDronesByCategoryHandler);
 
 /**
  * @swagger
@@ -250,8 +192,9 @@ router.get('/drones/category/:category',generalRateLimiter, getDronesByCategoryH
  *       400:
  *         description: Parámetros inválidos
  */
-router.get('/drones/price',generalRateLimiter, getDronesByPriceRangeHandler);
+router.get('/drones/price', generalRateLimiter, getDronesByPriceRangeHandler);
 
+// ----------------- MESSAGES -----------------
 /**
  * @swagger
  * tags:
@@ -270,21 +213,7 @@ router.get('/drones/price',generalRateLimiter, getDronesByPriceRangeHandler);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - senderId
- *               - receiverId
- *               - content
- *             properties:
- *               senderId:
- *                 type: string
- *                 description: ObjectId del remitente
- *               receiverId:
- *                 type: string
- *                 description: ObjectId del destinatario
- *               content:
- *                 type: string
- *                 description: Texto del mensaje
+ *             $ref: '#/components/schemas/MessageInput'
  *     responses:
  *       201:
  *         description: Mensaje creado y emitido por WS
@@ -315,30 +244,128 @@ router.post('/messages', generalRateLimiter, sendMessageHandler);
  *     responses:
  *       200:
  *         description: Lista de mensajes ordenada cronológicamente
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   senderId:
- *                     type: string
- *                   receiverId:
- *                     type: string
- *                   content:
- *                     type: string
- *                   createdAt:
- *                     type: string
- *                     format: date-time
  *       500:
  *         description: Error al obtener mensajes
  */
-router.get(
-  '/messages/:userId/:contactId',
-  generalRateLimiter,
-  getMessagesHandler
-);
+router.get('/messages/:userId/:contactId', generalRateLimiter, getMessagesHandler);
+
+/**
+ * @swagger
+ * /api/conversations/{userId}:
+ *   get:
+ *     summary: Obtener conversaciones de un usuario
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario autenticado
+ *     responses:
+ *       200:
+ *         description: Lista de conversaciones con último mensaje
+ *       500:
+ *         description: Error cargando conversaciones
+ */
+router.get('/conversations/:userId', generalRateLimiter, getConversationsHandler);
+
+// ----------------- ORDERS -----------------
+/**
+ * @swagger
+ * tags:
+ *   name: Orders
+ *   description: Pedidos de compra
+ */
+
+/**
+ * @swagger
+ * /api/orders:
+ *   post:
+ *     summary: Crear un nuevo pedido
+ *     tags: [Orders]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/OrderInput'
+ *     responses:
+ *       201:
+ *         description: Pedido creado
+ *       500:
+ *         description: Error al crear pedido
+ */
+router.post('/orders', generalRateLimiter, createOrderHandler);
+
+/**
+ * @swagger
+ * /api/orders/{userId}:
+ *   get:
+ *     summary: Obtener pedidos de un usuario
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Lista de pedidos
+ *       500:
+ *         description: Error al obtener pedidos
+ */
+router.get('/orders/:userId', generalRateLimiter, getUserOrdersHandler);
+
+// ----------------- PAYMENTS -----------------
+/**
+ * @swagger
+ * tags:
+ *   name: Payments
+ *   description: Pagos relacionados a pedidos
+ */
+
+/**
+ * @swagger
+ * /api/payments:
+ *   post:
+ *     summary: Registrar un pago
+ *     tags: [Payments]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PaymentInput'
+ *     responses:
+ *       201:
+ *         description: Pago registrado
+ *       500:
+ *         description: Error al procesar pago
+ */
+router.post('/payments', generalRateLimiter, processPaymentHandler);
+
+/**
+ * @swagger
+ * /api/payments/{userId}:
+ *   get:
+ *     summary: Obtener pagos de un usuario
+ *     tags: [Payments]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Lista de pagos
+ *       500:
+ *         description: Error al obtener pagos
+ */
+router.get('/payments/:userId', generalRateLimiter, getUserPaymentsHandler);
 
 export default router;
-

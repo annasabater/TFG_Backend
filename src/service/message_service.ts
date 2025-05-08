@@ -1,108 +1,145 @@
+//src/service/message_service.ts
+import mongoose from 'mongoose';
 import Drone, { IDrone } from '../models/drone_models.js';
 import User from '../models/user_models.js';
 import { Message, Order, Payment } from '../models/message_models.js';
 
-// Permite que los usuarios publiquen drones en venta o alquiler
-export const createDrone = async (droneData: IDrone) => {
-    const drone = new Drone(droneData);
-    await drone.save();
-    return drone;
-};
+// DRONE SERVICES
+export async function createDrone(droneData: IDrone) {
+  const drone = new Drone(droneData);
+  await drone.save();
+  return drone;
+}
 
-// Lista todos los drones disponibles
-export const getDrones = async () => {
-    return await Drone.find();
-};
+export async function getDrones() {
+  return await Drone.find();
+}
 
-// Obtiene la información detallada de un dron, incluyendo el vendedor
-export const getDroneById = async (id: string) => {
-    return await Drone.findById(id).populate('sellerId', 'name email');
-};
+export async function getDroneById(id: string) {
+  return await Drone.findById(id).populate('sellerId', 'name email');
+}
 
-// Permite que los vendedores editen su publicación
-export const updateDrone = async (id: string, updateData: Partial<IDrone>) => {
-    return await Drone.findByIdAndUpdate(id, updateData, { new: true });
-};
+export async function updateDrone(id: string, updateData: Partial<IDrone>) {
+  return await Drone.findByIdAndUpdate(id, updateData, { new: true });
+}
 
-// Permite que los vendedores eliminen su publicación
-export const deleteDrone = async (id: string) => {
-    return await Drone.findByIdAndDelete(id);
-};
+export async function deleteDrone(id: string) {
+  return await Drone.findByIdAndDelete(id);
+}
 
-// Filtra drones en un rango de precios
-export const getDronesByCategory = async (category: string) => {
-    return await Drone.find({ category });
-};
+export async function getDronesByCategory(category: string) {
+  return await Drone.find({ category });
+}
 
-// Obtener drones dentro de un rango de precios
-export const getDronesByPriceRange = async (min: number, max: number) => {
-    return await Drone.find({ price: { $gte: min, $lte: max } });
-};
+export async function getDronesByPriceRange(min: number, max: number) {
+  return await Drone.find({ price: { $gte: min, $lte: max } });
+}
 
-// Agregar una reseña a un dron. Los compradores pueden calificar y comentar sobre drones que han adquirido
-export const addReviewToDrone = async (droneId: string, userId: string, rating: number, comment: string) => {
-    const drone = await Drone.findById(droneId);
-    if (!drone) return null;
+export async function addReviewToDrone(
+  droneId: string,
+  userId: string,
+  rating: number,
+  comment: string
+) {
+  const drone = await Drone.findById(droneId);
+  if (!drone) return null;
+  const user = await User.findById(userId);
+  if (!user) return null;
+  drone.ratings.push({ userId, rating, comment });
+  await drone.save();
+  return drone;
+}
 
-    const user = await User.findById(userId);
-    if (!user) return null;
+// MESSAGE SERVICES
+async function validateUserNotDeleted(userId: string) {
+  const user = await User.findById(userId);
+  if (!user || (user as any).isDeleted) {
+    throw new Error('Usuario no encontrado o eliminado');
+  }
+}
 
-    drone.ratings.push({ userId, rating, comment });
-    await drone.save();
-    return drone;
-};
+export async function sendMessage(
+  senderId: string,
+  receiverId: string,
+  content: string
+) {
+  await validateUserNotDeleted(senderId);
+  await validateUserNotDeleted(receiverId);
+  const message = new Message({ senderId, receiverId, content });
+  return await message.save();
+}
 
-// Validar que el usuario no esté eliminado
-const validateUserNotDeleted = async (userId: string) => {
-    const user = await User.findById(userId);
-    if (!user || user.isDeleted) {
-        throw new Error('Usuario no encontrado o eliminado');
-    }
-};
+export async function getMessages(
+  userId: string,
+  contactId: string
+) {
+  return await Message.find({
+    $or: [
+      { senderId: userId, receiverId: contactId },
+      { senderId: contactId, receiverId: userId }
+    ]
+  }).sort({ createdAt: 1 });
+}
 
-// Permite que compradores y vendedores se contacten
-export const sendMessage = async (senderId: string, receiverId: string, content: string) => {
-    await validateUserNotDeleted(senderId);
-    await validateUserNotDeleted(receiverId);
-    const message = new Message({ senderId, receiverId, content });
-    return await message.save();
-};
+// ORDER & PAYMENT SERVICES
+export async function createOrder(
+  droneId: string,
+  buyerId: string,
+  sellerId: string
+) {
+  await validateUserNotDeleted(buyerId);
+  await validateUserNotDeleted(sellerId);
+  const order = new Order({ droneId, buyerId, sellerId });
+  return await order.save();
+}
 
-// Permite ver el historial de mensajes entre dos usuarios
-export const getMessages = async (userId: string, contactId: string) => {
-    return await Message.find({
-        $or: [
-            { senderId: userId, receiverId: contactId },
-            { senderId: contactId, receiverId: userId }
-        ]
-    }).sort({ timestamp: 1 });
-};
+export async function getUserOrders(userId: string) {
+  return await Order.find({ buyerId: userId }).populate(
+    'droneId sellerId',
+    'name email'
+  );
+}
 
-// Crea una orden de compra
-export const createOrder = async (droneId: string, buyerId: string, sellerId: string) => {
-    await validateUserNotDeleted(buyerId);
-    await validateUserNotDeleted(sellerId);
-    const order = new Order({ droneId, buyerId, sellerId });
-    return await order.save();
-};
+export async function processPayment(
+  orderId: string,
+  userId: string,
+  amount: number
+) {
+  const payment = new Payment({ orderId, userId, amount });
+  return await payment.save();
+}
 
-// Muestra el historial de compras de un usuario
-export const getUserOrders = async (userId: string) => {
-    return await Order.find({ buyerId: userId }).populate('droneId sellerId', 'name email');
-};
+export async function getUserPayments(userId: string) {
+  return await Payment.find({ userId });
+}
 
-// Permite cambiar el estado de una compra
-export const updateOrderStatus = async (orderId: string, status: 'pendiente' | 'enviado' | 'entregado') => {
-    return await Order.findByIdAndUpdate(orderId, { status }, { new: true });
-};
-
-// Registra un pago
-export const processPayment = async (orderId: string, userId: string, amount: number) => {
-    const payment = new Payment({ orderId, userId, amount });
-    return await payment.save();
-};
-
-// Lista los pagos realizados por un usuario
-export const getUserPayments = async (userId: string) => {
-    return await Payment.find({ userId });
-};
+// CONVERSATION AGGREGATOR
+export async function getConversations(userId: string) {
+  const oid = new mongoose.Types.ObjectId(userId);
+  return await Message.aggregate([
+    { $match: { $or: [{ senderId: oid }, { receiverId: oid }] } },
+    { $project: {
+        partnerId: {
+          $cond: [ { $eq: ['$senderId', oid] }, '$receiverId', '$senderId' ]
+        },
+        content:   '$content',
+        timestamp: '$createdAt'
+      }
+    },
+    { $sort: { timestamp: -1 } },
+    { $group: {
+        _id: '$partnerId',
+        lastMessage: { $first: '$content' },
+        timestamp:   { $first: '$timestamp' }
+      }
+    },
+    { $project: {
+        _id:        0,
+        partnerId:  '$_id',
+        lastMessage:1,
+        timestamp:  1
+      }
+    },
+    { $sort: { timestamp: -1 } }
+  ]);
+}
