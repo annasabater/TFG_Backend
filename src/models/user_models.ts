@@ -2,16 +2,15 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-    userName :{type: String, required : true },
-    email: { type : String, required : true,unique:true},
-    password: { type:String, required: true},
-    //friends : [{type:mongoose.Types.ObjectId}],
-    isDeleted: { type: Boolean, default: false }, // borrado lógico
-    role: { type : String,
-            enum : ['Administrador', 'Usuario', 'Empresa', 'Gobierno'],
-            default: 'Usuario' // rol por defecto
-    }
-});
+    userName : { type: String, required: true },
+    email    : { type: String, required: true, unique: true },
+    password : { type: String, required: true },
+    isDeleted: { type: Boolean, default: false },
+    role     : { type: String, enum: ['Administrador', 'Usuario', 'Empresa', 'Gobierno'], default: 'Usuario' },
+
+    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drone', default: [] }]
+  });
+  
 
 userSchema.methods.toJSON = function () {
     const user = this.toObject();
@@ -20,17 +19,15 @@ userSchema.methods.toJSON = function () {
     return user;
 };
 
-export interface IUser{
-    _id?: mongoose.Types.ObjectId; // id de mongo
-    isactive:boolean; //is active true by default
-    password : string;
-    userName : string;
-    email : string;
-    //List<Dron> drons: string;
-    //friends?: mongoose.Types.ObjectId[];
+export interface IUser {
+    _id?: mongoose.Types.ObjectId;
+    password: string;
+    userName: string;
+    email: string;
     isDeleted?: boolean;
     role: 'Administrador' | 'Usuario' | 'Empresa' | 'Gobierno';
-}
+    favorites?: mongoose.Types.ObjectId[];          
+  }
 
 const User = mongoose.model('User', userSchema);
 export default User;

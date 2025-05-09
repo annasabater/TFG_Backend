@@ -12,28 +12,32 @@ export interface IDrone {
     model: string;
     price: number;
     details?: string;
-    category?: 'venta' | 'alquiler';
-    condition?: 'nuevo' | 'usado';
-    location?: string;
+    category: 'venta' | 'alquiler';
+    condition: 'nuevo' | 'usado';
+    location: string;
     contact?: string;
+    images?: string[];
+    status?: 'actiu' | 'venut';        
     createdAt?: Date;
     ratings?: IRating[];
-    images?: string[];
-}
+  }
+  
 
 const droneSchema = new mongoose.Schema({
-    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    model: { type: String, required: true },
-    price: { type: Number, required: true },
-    details: { type: String, required: false },
-    category: { type: String, enum: ['venta', 'alquiler'], required: false },
-    condition: { type: String, enum: ['nuevo', 'usado'], required: false },
-    location: { type: String, required: false },
-    contact: { type: String, required: false },
+    ownerId  : { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    model    : { type: String, required: true },
+    price    : { type: Number, required: true },
+    details  : { type: String },
+    category : { type: String, enum: ['venta', 'alquiler'], required: true },
+    condition: { type: String, enum: ['nuevo', 'usado'], required: true },
+    location : { type: String, required: true },
+    contact  : { type: String },
+    images   : [{ type: String }],
     createdAt: { type: Date, default: Date.now },
-    ratings: [ratingSchema],
-    images: [{ type: String }]
-});
+    status   : { type: String, enum: ['actiu', 'venut'], default: 'actiu' },
+    ratings  : [ratingSchema]
+  });
+  
 
 export interface IRating {
     userId: string;

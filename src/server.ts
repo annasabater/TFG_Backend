@@ -14,11 +14,11 @@ import messageRoutes from './routes/message_routes.js';
 import sessionRoutes from './routes/session_routes.js';
 import { corsHandler } from './middleware/corsHandler.js';
 import { loggingHandler } from './middleware/loggingHandler.js';
-import { routeNotFound } from './middleware/routeNotFound.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import { verifyToken } from './utils/jwtHandler.js';
 import User from './models/user_models.js';
+import { routeNotFound } from './middleware/routeNotFound.js';
 
 // Carga variables de entorno
 dotenv.config({ path: '../.env' });
@@ -29,54 +29,63 @@ const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 
 // Configuración de Swagger
 const swaggerOptions = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'API de Usuarios',
-            version: '1.0.0',
-            description: 'Documentación de la API de Usuarios'
-        },
-        tags: [
-            {
-              name: 'Users',
-              description: 'Rutas relacionadas con la gestión de usuarios',
+  definition: {
+      openapi: '3.0.0',
+      info: {
+          title: 'API de Usuarios',
+          version: '1.0.0',
+          description: 'Documentación de la API de Usuarios'
+      },
+      tags: [
+          {
+            name: 'Users',
+            description: 'Rutas relacionadas con la gestión de usuarios',
+          },
+          {
+            name: 'Forum',
+            description: 'Rutas relacionadas con el forum',
+          },
+          {
+              name: 'Drones',
+              description: 'Rutas relacionadas con el drone',
             },
-            {
-              name: 'Forum',
-              description: 'Rutas relacionadas con el forum',
-            },
-            {
-                name: 'Drones',
-                description: 'Rutas relacionadas con el drone',
-              },
-            {
-              name: 'Main',
-              description: 'Rutas principales de la API',
-            },
-            { 
-                name: 'Payments', 
-                description: 'Procesamiento de pagos' ,
-            },
-            { 
-                name: 'Messages', 
-                description: 'Mensajería entre usuarios' ,
-            },
-            { 
-                name: 'Juegos', 
-                description: 'Juegos entre usuarios' ,
-            },
-            { 
-                name: 'Auth', 
-                description: 'Registro y Login de usuarios' ,
-            }
-          ],
-        servers: [
-            {
-                url: `http://localhost:${LOCAL_PORT}`
-            }
-        ]
-    },
-    apis: ['./routes/*.js'] 
+          {
+            name: 'Main',
+            description: 'Rutas principales de la API',
+          },
+          { 
+              name: 'Payments', 
+              description: 'Procesamiento de pagos' ,
+          },
+          { 
+              name: 'Messages', 
+              description: 'Mensajería entre usuarios' ,
+          },
+          { 
+              name: 'Juegos', 
+              description: 'Juegos entre usuarios' ,
+          },
+          { 
+              name: 'Auth', 
+              description: 'Registro y Login de usuarios' ,
+          }
+          ,
+          { 
+              name: 'Favourites', 
+              description: 'Productes marcats com a favorits' ,
+          },
+          { 
+              name: 'Orders', 
+              description: 'Pedidos de compra' ,
+          }
+        ],
+      servers: [
+          {
+              url: `http://localhost:${LOCAL_PORT}`
+          }
+      ]
+  },
+  apis: ['./routes/*.js'] // Asegúrate de que esta ruta apunta a tus rutas
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
@@ -102,18 +111,17 @@ app.get('/', (_req, res) => {
 });
 
 // Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ExampleDatabase')
+mongoose
+  .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ExampleDatabase')
   .then(() => console.log('Connected to DB'))
-  .catch(error => console.error('DB Connection Error:', error));
+  .catch(err => console.error('DB Connection Error:', err));
 
-// --- Configuración de Socket.IO ---
-// Creamos servidor HTTP a partir de Express
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
-// 1) Namespace de alumnos (/jocs)
+// — Namespace de jugadores `/jocs` —
 const jocsNsp = io.of('/jocs');
-const competitorEmails = new Set([
+const competitors = new Set([
   'dron_azul1@upc.edu',
   'dron_verde1@upc.edu',
   'dron_rojo1@upc.edu',
@@ -127,8 +135,9 @@ jocsNsp.use(async (socket, next) => {
     const payload = verifyToken(token);
     if (!payload) throw new Error('Invalid token');
     const user = await User.findById((payload as any).id);
-    if (!user || user.isDeleted || !competitorEmails.has(user.email))
+    if (!user || user.isDeleted || !competitors.has(user.email)) {
       throw new Error('Unauthorized');
+    }
     socket.data.userId = user._id.toString();
     next();
   } catch {
@@ -137,22 +146,21 @@ jocsNsp.use(async (socket, next) => {
 });
 
 jocsNsp.on('connection', socket => {
+  // Al unirse al lobby
   socket.on('join', ({ sessionId }) => {
     socket.join(sessionId);
     const count = jocsNsp.adapter.rooms.get(sessionId)?.size ?? 0;
     jocsNsp.to(sessionId).emit('waiting', { msg: `Esperando jugadores: ${count}` });
-    profNsp.emit('lobbyUpdate', { sessionId, count });
   });
+
+  // Control en vuelo
   socket.on('control', ({ sessionId, action, payload }) => {
-    const update = { action, payload, by: socket.data.userId };
-    jocsNsp.to(sessionId).emit('state_update', update);
+    jocsNsp.to(sessionId).emit('state_update', { action, payload, by: socket.data.userId });
   });
 });
 
-// Namespace del profesor (/professor)
+// — Namespace del profesor `/professor` —
 const profNsp = io.of('/professor');
-
-// Autenticación por clave ADMIN_KEY
 profNsp.use((socket, next) => {
   const key = socket.handshake.auth?.key;
   if (key === process.env.ADMIN_KEY) return next();
@@ -162,13 +170,14 @@ profNsp.use((socket, next) => {
 profNsp.on('connection', socket => {
   console.log('Profesor conectado');
   socket.on('startCompetition', ({ sessionId }) => {
+    console.log(`game_started para session ${sessionId}`);
+    //  emit que tus clientes en /jocs deben estar escuchando
     jocsNsp.to(sessionId).emit('game_started', { sessionId });
   });
 });
 
-// --- Namespace de chat entre usuarios ---
+// — Namespace de chat `/chat` (sin cambios) —
 export const chatNsp = io.of('/chat');
-
 chatNsp.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
@@ -183,17 +192,16 @@ chatNsp.use(async (socket, next) => {
     next(new Error('Authentication error'));
   }
 });
-
 chatNsp.on('connection', socket => {
   const uid = socket.data.userId;
-  socket.join(uid);  // cada usuario en su “room”
-  console.log(` Usuario ${uid} conectado al chat`);
+  socket.join(uid);
+  console.log(`Usuario ${uid} conectado al chat`);
 });
-
 
 httpServer.listen(LOCAL_PORT, () => {
   console.log(`API y WS corriendo en puerto ${LOCAL_PORT}`);
 });
+
 
 
 

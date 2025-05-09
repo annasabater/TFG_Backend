@@ -81,24 +81,31 @@ export async function getMessages(
   }).sort({ createdAt: 1 });
 }
 
-// ORDER & PAYMENT SERVICES
-export async function createOrder(
-  droneId: string,
-  buyerId: string,
-  sellerId: string
-) {
+
+export async function createOrder(droneId: string, buyerId: string, sellerId: string) {
   await validateUserNotDeleted(buyerId);
   await validateUserNotDeleted(sellerId);
+  if (buyerId === sellerId) throw new Error('No pots comprar el teu propi producte');
+
+  const drone = await Drone.findById(droneId);
+  if (!drone) throw new Error('Dron no encontrado');
+
   const order = new Order({ droneId, buyerId, sellerId });
-  return await order.save();
+  await order.save();
+
+  if (drone.category === 'venta') {
+    await Drone.findByIdAndUpdate(droneId, { status: 'venut' });
+  }
+
+  return order;
 }
 
+
+/*  Recuperar pedidos del comprador */
 export async function getUserOrders(userId: string) {
-  return await Order.find({ buyerId: userId }).populate(
-    'droneId sellerId',
-    'name email'
-  );
-}
+  return await Order.find({ buyerId: userId })
+                    .populate('droneId sellerId', 'name email');
+}                                     
 
 export async function processPayment(
   orderId: string,
@@ -119,27 +126,19 @@ export async function getConversations(userId: string) {
   return await Message.aggregate([
     { $match: { $or: [{ senderId: oid }, { receiverId: oid }] } },
     { $project: {
-        partnerId: {
-          $cond: [ { $eq: ['$senderId', oid] }, '$receiverId', '$senderId' ]
-        },
+        partnerId: { $cond: [{ $eq: ['$senderId', oid] }, '$receiverId', '$senderId'] },
         content:   '$content',
         timestamp: '$createdAt'
       }
     },
-    { $sort: { timestamp: -1 } },
+    { $sort:  { timestamp: -1 } },
     { $group: {
         _id: '$partnerId',
         lastMessage: { $first: '$content' },
         timestamp:   { $first: '$timestamp' }
       }
     },
-    { $project: {
-        _id:        0,
-        partnerId:  '$_id',
-        lastMessage:1,
-        timestamp:  1
-      }
-    },
-    { $sort: { timestamp: -1 } }
+    { $project: { _id: 0, partnerId: '$_id', lastMessage: 1, timestamp: 1 } },
+    { $sort:  { timestamp: -1 } }
   ]);
 }
