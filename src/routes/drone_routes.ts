@@ -13,7 +13,8 @@ import {
   addFavoriteHandler,
   removeFavoriteHandler,
   getFavoritesHandler,
-  getMyDronesHandler
+  getMyDronesHandler,
+  purchaseDroneHandler,
 } from '../controllers/drone_controller.js';
 
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
@@ -379,5 +380,88 @@ router.get(
   checkJwt,            
   getMyDronesHandler
 );
+
+
+/**
+ * @openapi
+ * /api/drones/{id}/purchase:
+ *   post:
+ *     summary: Comprar un dron i marcar-lo com venut
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del dron a comprar
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               address:
+ *                 type: string
+ *                 description: Adreça d'enviament
+ *               phone:
+ *                 type: string
+ *                 description: Telèfon de contacte
+ *           example:
+ *             address: "C/ Exemple, 123, Ciutat"
+ *             phone: "+34912345678"
+ *     responses:
+ *       200:
+ *         description: Dron comprat i marcat com venut
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Drone'
+ *       404:
+ *         description: Dron no trobat
+ *       500:
+ *         description: Error intern del servidor
+ */
+router.post(
+  '/drones/:id/purchase',
+  generalRateLimiter,
+  checkJwt,
+  purchaseDroneHandler
+);
+
+/**
+ * @openapi
+ * /api/drones/{id}/sold:
+ *   put:
+ *     summary: Marcar un dron com venut
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del dron a marcar com venut
+ *     responses:
+ *       200:
+ *         description: Dron marcat com venut
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Drone'
+ *       404:
+ *         description: Dron no trobat
+ *       500:
+ *         description: Error intern del servidor
+ */
+router.put(
+  '/drones/:id/sold',
+  generalRateLimiter,
+  checkJwt,
+  ensureOwner,
+  purchaseDroneHandler
+);
+
 
 export default router;

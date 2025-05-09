@@ -68,8 +68,7 @@ const swaggerOptions = {
           { 
               name: 'Auth', 
               description: 'Registro y Login de usuarios' ,
-          }
-          ,
+          },
           { 
               name: 'Favourites', 
               description: 'Productes marcats com a favorits' ,
@@ -85,7 +84,7 @@ const swaggerOptions = {
           }
       ]
   },
-  apis: ['./routes/*.js'] // Asegúrate de que esta ruta apunta a tus rutas
+  apis: ['./routes/*.js'] 
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 

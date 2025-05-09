@@ -18,16 +18,28 @@ import {
   } from '../service/drone_service.js';
 import exp from 'constants';
 
-// Crear un nuevo dron
+
 export const createDroneHandler = async (req: Request, res: Response) => {
   try {
-    const droneData = { ...req.body }; // sin req.user
+    const {
+      _id,
+      status,
+      createdAt,
+      ratings,
+      isSold,
+      isService,
+      ...droneData
+    } = req.body;
+
     const drone = await createDrone(droneData);
     res.status(201).json(drone);
   } catch (error: any) {
+    console.error('ERROR createDrone:', error);
     res.status(500).json({ message: error.message || 'Error al crear el dron' });
   }
 };
+
+  
 
 // Get all drones with pagination
 export const getDronesHandler = async (req: Request, res: Response) => {
@@ -271,4 +283,17 @@ export const getMyDronesHandler = async (req: Request, res: Response) => {
       res.status(500).json({ message: e.message });
     }
   };
+
+  import { markDroneSold } from '../service/drone_service.js';
+
+export const purchaseDroneHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updated = await markDroneSold(id);
+    res.status(200).json(updated);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
   
