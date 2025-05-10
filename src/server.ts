@@ -127,6 +127,7 @@ const competitors = new Set([
   'dron_amarillo1@upc.edu',
 ]);
 
+// Autenticación de drones
 jocsNsp.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
@@ -137,29 +138,46 @@ jocsNsp.use(async (socket, next) => {
     if (!user || user.isDeleted || !competitors.has(user.email)) {
       throw new Error('Unauthorized');
     }
-    socket.data.userId = user._id.toString();
+    socket.data.userEmail = user.email;    // guardamos el email
+    socket.data.userId    = user._id.toString();
     next();
   } catch {
     next(new Error('Authentication error'));
   }
 });
 
+// Al conectar cada dron
 jocsNsp.on('connection', socket => {
-  // Al unirse al lobby
+  console.log(`→ Drone ${socket.data.userEmail} (${socket.data.userId}) connected to /jocs`);
+
+  // Se une a la sala de juego
   socket.on('join', ({ sessionId }) => {
     socket.join(sessionId);
     const count = jocsNsp.adapter.rooms.get(sessionId)?.size ?? 0;
     jocsNsp.to(sessionId).emit('waiting', { msg: `Esperando jugadores: ${count}` });
   });
 
-  // Control en vuelo
-  socket.on('control', ({ sessionId, action, payload }) => {
-    jocsNsp.to(sessionId).emit('state_update', { action, payload, by: socket.data.userId });
+  // Control desde el dron: reenviamos estado a los demás drones y forward a profesor
+  socket.on('control', data => {
+    const { sessionId, action, payload } = data;
+    // 1) a los demás drones en la sala
+    socket.to(sessionId).emit('state_update', { action, payload, by: socket.data.userEmail });
+    // 2) al profesor
+    profNsp.to(sessionId).emit('control', data);
+  });
+
+  // Profesor puede iniciar partida directamente en este namespace
+  socket.on('start_game_from_professor', ({ sessionId }) => {
+    console.log(`[jocs] start_game_from_professor for session ${sessionId}`);
+    jocsNsp.to(sessionId).emit('game_started', { sessionId });
   });
 });
 
+
 // — Namespace del profesor `/professor` —
 const profNsp = io.of('/professor');
+
+// Auth middleware para profesor
 profNsp.use((socket, next) => {
   const key = socket.handshake.auth?.key;
   if (key === process.env.ADMIN_KEY) return next();
@@ -167,15 +185,17 @@ profNsp.use((socket, next) => {
 });
 
 profNsp.on('connection', socket => {
-  console.log('Profesor conectado');
+  console.log('→ Profesor conectado to /professor');
+
+  // Profesor se une a la sala y lanza la partida
   socket.on('startCompetition', ({ sessionId }) => {
-    console.log(`game_started para session ${sessionId}`);
-    //  emit que tus clientes en /jocs deben estar escuchando
+    socket.join(sessionId);
+    console.log(`Professor joined room ${sessionId} and starting game`);
     jocsNsp.to(sessionId).emit('game_started', { sessionId });
   });
 });
 
-// — Namespace de chat `/chat` (sin cambios) —
+
 export const chatNsp = io.of('/chat');
 chatNsp.use(async (socket, next) => {
   try {
@@ -194,13 +214,13 @@ chatNsp.use(async (socket, next) => {
 chatNsp.on('connection', socket => {
   const uid = socket.data.userId;
   socket.join(uid);
-  console.log(`Usuario ${uid} conectado al chat`);
+  console.log(`→ Usuario ${uid} conectado al chat`);
 });
+
 
 httpServer.listen(LOCAL_PORT, () => {
   console.log(`API y WS corriendo en puerto ${LOCAL_PORT}`);
 });
-
 
 
 
