@@ -119,8 +119,7 @@ mongoose
 
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
-
-// — Namespace de jugadores `/jocs` —
+ 
 const jocsNsp = io.of('/jocs');
 const competitors = new Set([
   'dron_azul1@upc.edu',
@@ -140,7 +139,7 @@ jocsNsp.use(async (socket, next) => {
     if (!user || user.isDeleted || !competitors.has(user.email)) {
       throw new Error('Unauthorized');
     }
-    socket.data.userEmail = user.email;    // guardamos el email
+    socket.data.userEmail = user.email;    
     socket.data.userId    = user._id.toString();
     next();
   } catch {
@@ -162,9 +161,7 @@ jocsNsp.on('connection', socket => {
   // Control desde el dron: reenviamos estado a los demás drones y forward a profesor
   socket.on('control', data => {
     const { sessionId, action, payload } = data;
-    // 1) a los demás drones en la sala
     socket.to(sessionId).emit('state_update', { action, payload, by: socket.data.userEmail });
-    // 2) al profesor
     profNsp.to(sessionId).emit('control', data);
   });
 
@@ -176,7 +173,6 @@ jocsNsp.on('connection', socket => {
 });
 
 
-// — Namespace del profesor `/professor` —
 const profNsp = io.of('/professor');
 
 // Auth middleware para profesor
@@ -189,21 +185,15 @@ profNsp.use((socket, next) => {
 profNsp.on('connection', socket => {
   socket.on('startCompetition', async ({ sessionId }) => {
     socket.join(sessionId);
-    // 1) persisto en BD (si no está creado aún)
-    //   — OJO: asegúrate antes de haber hecho POST /api/sessions
-    // 2) leo el escenario guardado
     const doc = await Session.findById(sessionId).select('scenario mode').lean();
     if (!doc) {
       console.error('Sesión no encontrada al iniciar competition', sessionId);
       return;
     }
-    // 3) emito a los drones
     jocsNsp.to(sessionId).emit('scenario', doc.scenario);
-    // 4) arranco la partida
     jocsNsp.to(sessionId).emit('game_started', { sessionId });
   });
 });
-
 
 
 export const chatNsp = io.of('/chat');
@@ -216,20 +206,18 @@ chatNsp.use(async (socket, next) => {
     if (!payload || !(payload as any).id) throw new Error('Invalid token');
     const user = await User.findById((payload as any).id);
     if (!user || user.isDeleted) throw new Error('Unauthorized');
-    socket.data.userId = user._id.toString();        // <-- guardamos string
+    socket.data.userId = user._id.toString();      
     next();
   } catch {
     next(new Error('Authentication error'));
   }
 });
 
-// 2) Al conectar un cliente
 chatNsp.on('connection', socket => {
   const uid = socket.data.userId as string;
   socket.join(uid);
   console.log(`→ Usuario ${uid} conectado al chat`);
 
-  // 3) Listener de envío de mensaje
   socket.on('send_message', async (data) => {
     try {
       const { senderId, receiverId, content } = data;
