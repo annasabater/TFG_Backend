@@ -1,16 +1,29 @@
 //src/controllers/session_controller.ts
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
+import { Session } from '../models/session_models.js';
 import {
   createSession,
   joinLobby,
   listPending,
-  acceptPlayers
+  acceptPlayers,
+  getScenario
 } from '../service/session_service.js';
+
 
 //POST /api/sessions
 export const createSessionHandler = async (req: any, res: Response) => {
   try {
-    const { scenario, mode } = req.body;
+    // obtenemos del body un array de escenarios
+    const scenario = req.body.scenario as any[];  
+    const mode     = req.body.mode     as string;
+
+    // validamos que venga un array no vacío
+    if (!Array.isArray(scenario) || scenario.length === 0) {
+      return res.status(400).json({ message: 'scenario debe ser un array no vacío' });
+    }
+
+    // creamos la sesión
     const sess = await createSession(req.user.id, scenario, mode);
     res.status(201).json(sess);
   } catch (err: any) {
@@ -56,3 +69,12 @@ export const acceptPlayersHandler = async (req: any, res: Response) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+//GET /api/sessions/:id/scenario
+
+export const getScenarioHandler = async (req: any, res: Response) => {
+  const doc = await getScenario(req.params.id);
+  if (!doc) return res.status(404).json({ message: 'Sesión no encontrada' });
+  return res.json({ scenario: doc.scenario });
+};
+

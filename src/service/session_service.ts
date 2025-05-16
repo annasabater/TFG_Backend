@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { Session } from '../models/session_models.js';
 import User from '../models/user_models.js';
 
-// Add user validation to ensure the user is not deleted
+// Valida que el usuario existe y no está eliminado
 const validateUserNotDeleted = async (userId: string) => {
   const user = await User.findById(userId);
   if (!user || user.isDeleted) {
@@ -11,39 +11,36 @@ const validateUserNotDeleted = async (userId: string) => {
   }
 };
 
-//Crea una nueva sesión (lobby)
-export const createSession = async (hostId: string, scenario: string, mode: string) => {
+// Crea una nueva sesión (lobby)
+export const createSession = async (hostId: string, scenario: any[], mode: string) => {
   await validateUserNotDeleted(hostId);
   const sess = new Session({ host: hostId, scenario, mode });
   return sess.save();
 };
 
-//Un jugador pide unirse al lobby
+// Un jugador se une al lobby
 export const joinLobby = async (sessionId: string, userId: string) => {
   await validateUserNotDeleted(userId);
   const sess = await Session.findById(sessionId);
   if (!sess) throw new Error('Sesión no existe');
-  // Evitar duplicados
   if (sess.participants.some(p => p.user.toString() === userId)) {
     return sess;
   }
-  // Empujar nuevo participante
   sess.participants.push({ user: new mongoose.Types.ObjectId(userId), status: 'PENDING' });
   return sess.save();
 };
 
-//Listar sesiones WAITING con participantes PENDING para un host
+// Lista sesiones WAITING con participantes PENDING para un host
 export const listPending = async (hostId: string) => {
   return Session.find({ host: hostId, state: 'WAITING' })
     .populate('participants.user', 'userName email')
     .lean();
 };
 
-//El host acepta jugadores y arranca la partida
+// El host acepta jugadores y arranca la partida
 export const acceptPlayers = async (sessionId: string, userIds: string[]) => {
   const sess = await Session.findById(sessionId);
   if (!sess) throw new Error('Sesión no encontrada');
-  // Actualizar estado de participantes aceptados
   sess.participants.forEach(p => {
     if (userIds.includes(p.user.toString())) {
       p.status = 'ACCEPTED';
@@ -51,4 +48,27 @@ export const acceptPlayers = async (sessionId: string, userIds: string[]) => {
   });
   sess.state = 'RUNNING';
   return sess.save();
+};
+
+// Obtiene el escenario, acepta rawId = ObjectId o entero como índice (1 → primer documento)
+export const getScenario = async (rawId: string) => {
+  let doc: any = null;
+
+  if (mongoose.isValidObjectId(rawId)) {
+    // Si es un ObjectId válido, buscar por _id
+    doc = await Session.findById(rawId).select('scenario').lean();
+  } else if (!isNaN(Number(rawId))) {
+    // Si es numérico, lo tratamos como índice 1-based
+    const idx = Math.max(0, Number(rawId) - 1);
+    const arr = await Session.find()
+      .skip(idx)
+      .limit(1)
+      .select('scenario')
+      .lean();
+    doc = arr[0] || null;
+  } else {
+    throw new Error('ID de sesión inválido');
+  }
+
+  return doc;
 };

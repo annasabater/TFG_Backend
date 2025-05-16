@@ -102,17 +102,25 @@ export async function getDronesByPriceRangeHandler(req: Request, res: Response) 
   }
 }
 
+
 export async function sendMessageHandler(req: Request, res: Response) {
   try {
     const { senderId, receiverId, content } = req.body;
     const msg = await sendMessage(senderId, receiverId, content);
-    chatNsp.to(receiverId).emit('new_message', msg);
-    chatNsp.to(senderId).emit('new_message', msg);
-    return res.status(201).json(msg);
+
+    const payload = msg.toObject();
+    payload.senderId   = payload.senderId.toString();
+    payload.receiverId = payload.receiverId.toString();
+
+    chatNsp.to(payload.receiverId).emit('new_message', payload);
+    chatNsp.to(payload.senderId).emit('new_message', payload);
+
+    return res.status(201).json(payload);
   } catch (error: any) {
     return res.status(500).json({ message: error.message });
   }
 }
+
 
 export async function getMessagesHandler(req: Request, res: Response) {
   try {

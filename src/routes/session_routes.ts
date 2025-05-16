@@ -1,14 +1,45 @@
-import express from 'express';
+// src/routes/session_routes.ts
+
+import { Router, Request, Response } from 'express';
 import {
   createSessionHandler,
   joinLobbyHandler,
   listPendingHandler,
-  acceptPlayersHandler
+  acceptPlayersHandler,
+  getScenarioHandler
 } from '../controllers/session_controller.js';
-import { Session } from '../models/session_models.js';
 import { checkJwt, verifyRole } from '../middleware/session.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
-const router = express.Router();
+
+const router = Router();
+
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     Session:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         host:
+ *           type: string
+ *         scenario:
+ *           type: string
+ *         mode:
+ *           type: string
+ *         state:
+ *           type: string
+ *         participants:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               user:
+ *                 type: string
+ *               status:
+ *                 type: string
+ */
 
 /**
  * @openapi
@@ -41,8 +72,12 @@ const router = express.Router();
  *       '401':
  *         description: No autorizado
  */
-router.post('/sessions',generalRateLimiter, checkJwt, createSessionHandler);
-
+router.post(
+  '/sessions',
+  generalRateLimiter,
+  checkJwt,
+  createSessionHandler
+);
 
 /**
  * @openapi
@@ -61,24 +96,16 @@ router.post('/sessions',generalRateLimiter, checkJwt, createSessionHandler);
  *             schema:
  *               type: array
  *               items:
- *                 type: object
- *                 properties:
- *                   _id:
- *                     type: string
- *                   scenario:
- *                     type: string
- *                   host:
- *                     type: string
+ *                 $ref: '#/components/schemas/Session'
  *       '401':
  *         description: No autorizado
  */
-router.get('/sessions/open',generalRateLimiter, checkJwt, async (_req, res) => {
-  const open = await Session.find({ state: 'WAITING' })
-    .select('_id scenario host')
-    .lean();
-  res.json(open);
-});
-
+router.get(
+  '/sessions/open',
+  generalRateLimiter,
+  checkJwt,
+  listPendingHandler  // si quieres otro handler, crea uno específico
+);
 
 /**
  * @openapi
@@ -92,20 +119,28 @@ router.get('/sessions/open',generalRateLimiter, checkJwt, async (_req, res) => {
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
  *         description: ID de la sesión
  *     responses:
  *       '200':
  *         description: Usuario añadido al lobby
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Session'
  *       '404':
  *         description: Sesión no existe
  *       '401':
  *         description: No autorizado
  */
-router.post('/sessions/:id/join',generalRateLimiter, checkJwt, joinLobbyHandler);
-
+router.post(
+  '/sessions/:id/join',
+  generalRateLimiter,
+  checkJwt,
+  joinLobbyHandler
+);
 
 /**
  * @openapi
@@ -128,8 +163,12 @@ router.post('/sessions/:id/join',generalRateLimiter, checkJwt, joinLobbyHandler)
  *       '401':
  *         description: No autorizado
  */
-router.get('/sessions/pending',generalRateLimiter, checkJwt, listPendingHandler);
-
+router.get(
+  '/sessions/pending',
+  generalRateLimiter,
+  checkJwt,
+  listPendingHandler
+);
 
 /**
  * @openapi
@@ -143,9 +182,9 @@ router.get('/sessions/pending',generalRateLimiter, checkJwt, listPendingHandler)
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
  *         description: ID de la sesión
  *     requestBody:
  *       required: true
@@ -171,6 +210,51 @@ router.get('/sessions/pending',generalRateLimiter, checkJwt, listPendingHandler)
  *       '401':
  *         description: No autorizado
  */
-router.post('/sessions/:id/accept',generalRateLimiter, checkJwt, acceptPlayersHandler);
+router.post(
+  '/sessions/:id/accept',
+  generalRateLimiter,
+  checkJwt,
+  acceptPlayersHandler
+);
+
+/**
+ * @openapi
+ * /api/sessions/{id}/scenario:
+ *   get:
+ *     summary: Obtener el escenario completo de una sesión
+ *     tags:
+ *       - Sessions
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la sesión
+ *     responses:
+ *       '200':
+ *         description: JSON con los escenarios de la sesión
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 scenario:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       '404':
+ *         description: Sesión no encontrada
+ *       '401':
+ *         description: No autorizado
+ */
+router.get(
+  '/sessions/:id/scenario',
+  generalRateLimiter,
+  checkJwt,
+  getScenarioHandler
+);
 
 export default router;

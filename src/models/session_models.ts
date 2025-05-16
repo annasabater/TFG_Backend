@@ -7,7 +7,7 @@ const participantSchema = new mongoose.Schema({
 });
 
 const sessionSchema = new mongoose.Schema({
-  scenario: { type: String, required: true },      // ID o nombre
+  scenario: { type: Array, required: true },      // ID o nombre
   mode:     { type: String, required: true },      // ej: "competencia"
   host:     { type: mongoose.Types.ObjectId, ref: 'User', required: true },
   participants: [participantSchema],

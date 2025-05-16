@@ -19,6 +19,8 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import { verifyToken } from './utils/jwtHandler.js';
 import User from './models/user_models.js';
 import { routeNotFound } from './middleware/routeNotFound.js';
+import { Session } from './models/session_models.js';
+import { sendMessage } from './service/message_service.js';
 
 // Carga variables de entorno
 dotenv.config({ path: '../.env' });
@@ -185,38 +187,72 @@ profNsp.use((socket, next) => {
 });
 
 profNsp.on('connection', socket => {
-  console.log('→ Profesor conectado to /professor');
-
-  // Profesor se une a la sala y lanza la partida
-  socket.on('startCompetition', ({ sessionId }) => {
+  socket.on('startCompetition', async ({ sessionId }) => {
     socket.join(sessionId);
-    console.log(`Professor joined room ${sessionId} and starting game`);
+    // 1) persisto en BD (si no está creado aún)
+    //   — OJO: asegúrate antes de haber hecho POST /api/sessions
+    // 2) leo el escenario guardado
+    const doc = await Session.findById(sessionId).select('scenario mode').lean();
+    if (!doc) {
+      console.error('Sesión no encontrada al iniciar competition', sessionId);
+      return;
+    }
+    // 3) emito a los drones
+    jocsNsp.to(sessionId).emit('scenario', doc.scenario);
+    // 4) arranco la partida
     jocsNsp.to(sessionId).emit('game_started', { sessionId });
   });
 });
 
 
+
 export const chatNsp = io.of('/chat');
+
 chatNsp.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
     if (!token) throw new Error('No token');
     const payload = verifyToken(token);
-    if (!payload) throw new Error('Invalid token');
+    if (!payload || !(payload as any).id) throw new Error('Invalid token');
     const user = await User.findById((payload as any).id);
     if (!user || user.isDeleted) throw new Error('Unauthorized');
-    socket.data.userId = user._id.toString();
+    socket.data.userId = user._id.toString();        // <-- guardamos string
     next();
   } catch {
     next(new Error('Authentication error'));
   }
 });
+
+// 2) Al conectar un cliente
 chatNsp.on('connection', socket => {
-  const uid = socket.data.userId;
+  const uid = socket.data.userId as string;
   socket.join(uid);
   console.log(`→ Usuario ${uid} conectado al chat`);
-});
 
+  // 3) Listener de envío de mensaje
+  socket.on('send_message', async (data) => {
+    try {
+      const { senderId, receiverId, content } = data;
+      // Guarda en BBDD
+      const msg = await sendMessage(senderId, receiverId, content);
+
+      // Prepara payload con IDs string
+      const payload = msg.toObject();
+      payload.senderId   = payload.senderId.toString();
+      payload.receiverId = payload.receiverId.toString();
+
+      // Emite a rooms correctos
+      chatNsp.to(payload.receiverId).emit('new_message', payload);
+      chatNsp.to(payload.senderId).emit('new_message', payload);
+    } catch (err) {
+      console.error('Error en send_message WS:', err);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`← Usuario ${uid} desconectado del chat`);
+  });
+});
 
 httpServer.listen(LOCAL_PORT, () => {
   console.log(`API y WS corriendo en puerto ${LOCAL_PORT}`);
