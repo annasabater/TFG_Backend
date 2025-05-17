@@ -5,6 +5,7 @@
     "main": " src/server.ts",
     "type": "module",
     "scripts": {
+        "build": "tsc",
         "start": "tsc && cd .\\build && node server.js"
     },
     "author": "",
