@@ -1,7 +1,5 @@
+//src/controllers/message_controller.ts
 import { Request, Response } from 'express';
-import { chatNsp } from '../server.js';
-import Drone from '../models/message_models.js';
-import mongoose from 'mongoose';
 import {
   createDrone,
   getDrones,
@@ -16,201 +14,172 @@ import {
   createOrder,
   getUserOrders,
   processPayment,
-  getUserPayments
+  getUserPayments,
+  getConversations
 } from '../service/message_service.js';
 
-// Crear un nuevo dron
-export const createDroneHandler = async (req: Request, res: Response) => {
-  try {
-    const droneData = { ...req.body }; // sin req.user
-    const drone = await createDrone(droneData);
-    res.status(201).json(drone);
-  } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al crear el dron' });
-  }
-};
+import { chatNsp } from '../server.js';
 
-// Obtener todos los drones
-export const getDronesHandler = async (req: Request, res: Response) => {
+export async function createDroneHandler(req: Request, res: Response) {
+  try {
+    const drone = await createDrone(req.body);
+    return res.status(201).json(drone);
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+export async function getDronesHandler(req: Request, res: Response) {
   try {
     const drones = await getDrones();
-    res.status(200).json(drones);
+    return res.status(200).json(drones);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al obtener drones' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-// Obtener un dron por ID
-export const getDroneByIdHandler = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        let drone = null;
-
-        if (mongoose.Types.ObjectId.isValid(id)) {
-            drone = await getDroneById(id);
-        }
-
-        if (!drone) {
-            drone = await Drone.findOne({ id }); 
-        }
-
-        if (!drone) {
-            return res.status(404).json({ message: 'Drone no encontrado' });
-        }
-
-        res.status(200).json(drone);
-    } catch (error: any) {
-        res.status(500).json({ message: error.message || "Error al obtener el dron" });
-    }
-};
-
-
-// Actualizar un dron
-export const updateDroneHandler = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        let drone = null;
-
-        if (mongoose.Types.ObjectId.isValid(id)) {
-            drone = await getDroneById(id);
-        }
-
-        if (!drone) {
-            drone = await Drone.findOne({ id });
-        }
-
-        if (!drone) {
-            return res.status(404).json({ message: 'Dron no encontrado' });
-        }
-
-        const updatedDrone = await updateDrone(drone._id.toString(), req.body);
-
-        res.status(200).json(updatedDrone);
-    } catch (error: any) {
-        res.status(500).json({ message: error.message || "Error al actualizar el dron" });
-    }
-};
-
-
-// Eliminar un dron
-export const deleteDroneHandler = async (req: Request, res: Response) => {
+export async function getDroneByIdHandler(req: Request, res: Response) {
   try {
     const drone = await getDroneById(req.params.id);
     if (!drone) return res.status(404).json({ message: 'Dron no encontrado' });
-
-    await deleteDrone(req.params.id);
-    res.status(200).json({ message: 'Dron eliminado exitosamente' });
+    return res.status(200).json(drone);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al eliminar el dron' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-// Obtener drones por categoría
-export const getDronesByCategoryHandler = async (req: Request, res: Response) => {
+export async function updateDroneHandler(req: Request, res: Response) {
   try {
-    const drones = await getDronesByCategory(req.params.category);
-    res.status(200).json(drones);
+    const updated = await updateDrone(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ message: 'Dron no encontrado' });
+    return res.status(200).json(updated);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al obtener drones por categoría' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-// Obtener drones en un rango de precios
-export const getDronesByPriceRangeHandler = async (req: Request, res: Response) => {
+export async function deleteDroneHandler(req: Request, res: Response) {
   try {
-    const { min, max } = req.query;
-    if (!min || !max || isNaN(Number(min)) || isNaN(Number(max))) {
-      return res.status(400).json({ message: 'Parámetros inválidos' });
-    }
-
-    const drones = await getDronesByPriceRange(Number(min), Number(max));
-    res.status(200).json(drones);
+    const deleted = await deleteDrone(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Dron no encontrado' });
+    return res.status(200).json({ message: 'Dron eliminado' });
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al obtener drones en el rango de precios' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-// Agregar una reseña a un dron
-export const addDroneReviewHandler = async (req: Request, res: Response) => {
+export async function addDroneReviewHandler(req: Request, res: Response) {
   try {
     const { rating, comment, userId } = req.body;
     const drone = await addReviewToDrone(req.params.id, userId, rating, comment);
-
     if (!drone) return res.status(404).json({ message: 'Dron o usuario no encontrado' });
-
-    res.status(200).json(drone);
+    return res.status(200).json(drone);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al agregar reseña' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-// Enviar mensaje
-export const sendMessageHandler = async (req: Request, res: Response) => {
+export async function getDronesByCategoryHandler(req: Request, res: Response) {
+  try {
+    const drones = await getDronesByCategory(req.params.category);
+    return res.status(200).json(drones);
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+export async function getDronesByPriceRangeHandler(req: Request, res: Response) {
+  try {
+    const min = Number(req.query.min);
+    const max = Number(req.query.max);
+    if (isNaN(min) || isNaN(max)) {
+      return res.status(400).json({ message: 'Parámetros inválidos' });
+    }
+    const drones = await getDronesByPriceRange(min, max);
+    return res.status(200).json(drones);
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+
+export async function sendMessageHandler(req: Request, res: Response) {
   try {
     const { senderId, receiverId, content } = req.body;
-    // Guarda en BD
-    const message = await sendMessage(senderId, receiverId, content);
+    const msg = await sendMessage(senderId, receiverId, content);
 
-    // Emite al receptor y al propio emisor
-    chatNsp.to(receiverId).emit('new_message', message);
-    chatNsp.to(senderId).emit('new_message', message);
+    const payload = msg.toObject();
+    payload.senderId   = payload.senderId.toString();
+    payload.receiverId = payload.receiverId.toString();
 
-    // Devuelve la respuesta HTTP
-    res.status(201).json(message);
+    chatNsp.to(payload.receiverId).emit('new_message', payload);
+    chatNsp.to(payload.senderId).emit('new_message', payload);
+
+    return res.status(201).json(payload);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al enviar mensaje' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
 
-// Obtener historial de mensajes
-export const getMessagesHandler = async (req: Request, res: Response) => {
+export async function getMessagesHandler(req: Request, res: Response) {
   try {
-    const messages = await getMessages(req.params.userId, req.params.contactId);
-    res.status(200).json(messages);
+    const msgs = await getMessages(req.params.userId, req.params.contactId);
+    return res.status(200).json(msgs);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al obtener mensajes' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-// Crear un pedido
-export const createOrderHandler = async (req: Request, res: Response) => {
+export async function getConversationsHandler(req: Request, res: Response) {
   try {
-    const { droneId, buyerId, sellerId } = req.body;
-    const order = await createOrder(droneId, buyerId, sellerId);
-    res.status(201).json(order);
+    const convs = await getConversations(req.params.userId);
+    return res.status(200).json(convs);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al crear pedido' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-// Obtener pedidos de un usuario
-export const getUserOrdersHandler = async (req: Request, res: Response) => {
+export async function createOrderHandler(req: Request, res: Response) {
+  try {
+    const order = await createOrder(
+      req.body.droneId,
+      req.body.buyerId,
+      req.body.sellerId
+    );
+    return res.status(201).json(order);
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+export async function getUserOrdersHandler(req: Request, res: Response) {
   try {
     const orders = await getUserOrders(req.params.userId);
-    res.status(200).json(orders);
+    return res.status(200).json(orders);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al obtener pedidos' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-// Procesar pago
-export const processPaymentHandler = async (req: Request, res: Response) => {
+export async function processPaymentHandler(req: Request, res: Response) {
   try {
-    const { orderId, userId, amount } = req.body;
-    const payment = await processPayment(orderId, userId, amount);
-    res.status(201).json(payment);
+    const payment = await processPayment(
+      req.body.orderId,
+      req.body.userId,
+      req.body.amount
+    );
+    return res.status(201).json(payment);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al procesar pago' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}
 
-// Obtener pagos de un usuario
-export const getUserPaymentsHandler = async (req: Request, res: Response) => {
+export async function getUserPaymentsHandler(req: Request, res: Response) {
   try {
-    const payments = await getUserPayments(req.params.userId);
-    res.status(200).json(payments);
+    const pays = await getUserPayments(req.params.userId);
+    return res.status(200).json(pays);
   } catch (error: any) {
-    res.status(500).json({ message: error.message || 'Error al obtener pagos' });
+    return res.status(500).json({ message: error.message });
   }
-};
+}

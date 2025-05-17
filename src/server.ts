@@ -14,11 +14,13 @@ import messageRoutes from './routes/message_routes.js';
 import sessionRoutes from './routes/session_routes.js';
 import { corsHandler } from './middleware/corsHandler.js';
 import { loggingHandler } from './middleware/loggingHandler.js';
-import { routeNotFound } from './middleware/routeNotFound.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import { verifyToken } from './utils/jwtHandler.js';
 import User from './models/user_models.js';
+import { routeNotFound } from './middleware/routeNotFound.js';
+import { Session } from './models/session_models.js';
+import { sendMessage } from './service/message_service.js';
 
 // Carga variables de entorno
 dotenv.config({ path: '../.env' });
@@ -29,54 +31,62 @@ const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 
 // Configuración de Swagger
 const swaggerOptions = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'API de Usuarios',
-            version: '1.0.0',
-            description: 'Documentación de la API de Usuarios'
-        },
-        tags: [
-            {
-              name: 'Users',
-              description: 'Rutas relacionadas con la gestión de usuarios',
+  definition: {
+      openapi: '3.0.0',
+      info: {
+          title: 'API de Usuarios',
+          version: '1.0.0',
+          description: 'Documentación de la API de Usuarios'
+      },
+      tags: [
+          {
+            name: 'Users',
+            description: 'Rutas relacionadas con la gestión de usuarios',
+          },
+          {
+            name: 'Forum',
+            description: 'Rutas relacionadas con el forum',
+          },
+          {
+              name: 'Drones',
+              description: 'Rutas relacionadas con el drone',
             },
-            {
-              name: 'Forum',
-              description: 'Rutas relacionadas con el forum',
-            },
-            {
-                name: 'Drones',
-                description: 'Rutas relacionadas con el drone',
-              },
-            {
-              name: 'Main',
-              description: 'Rutas principales de la API',
-            },
-            { 
-                name: 'Payments', 
-                description: 'Procesamiento de pagos' ,
-            },
-            { 
-                name: 'Messages', 
-                description: 'Mensajería entre usuarios' ,
-            },
-            { 
-                name: 'Juegos', 
-                description: 'Juegos entre usuarios' ,
-            },
-            { 
-                name: 'Auth', 
-                description: 'Registro y Login de usuarios' ,
-            }
-          ],
-        servers: [
-            {
-                url: `http://localhost:${LOCAL_PORT}`
-            }
-        ]
-    },
-    apis: ['./routes/*.js'] 
+          {
+            name: 'Main',
+            description: 'Rutas principales de la API',
+          },
+          { 
+              name: 'Payments', 
+              description: 'Procesamiento de pagos' ,
+          },
+          { 
+              name: 'Messages', 
+              description: 'Mensajería entre usuarios' ,
+          },
+          { 
+              name: 'Juegos', 
+              description: 'Juegos entre usuarios' ,
+          },
+          { 
+              name: 'Auth', 
+              description: 'Registro y Login de usuarios' ,
+          },
+          { 
+              name: 'Favourites', 
+              description: 'Productes marcats com a favorits' ,
+          },
+          { 
+              name: 'Orders', 
+              description: 'Pedidos de compra' ,
+          }
+        ],
+      servers: [
+          {
+              url: `http://localhost:${LOCAL_PORT}`
+          }
+      ]
+  },
+  apis: ['./routes/*.js'] 
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
@@ -102,24 +112,23 @@ app.get('/', (_req, res) => {
 });
 
 // Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ExampleDatabase')
+mongoose
+  .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ExampleDatabase')
   .then(() => console.log('Connected to DB'))
-  .catch(error => console.error('DB Connection Error:', error));
+  .catch(err => console.error('DB Connection Error:', err));
 
-// --- Configuración de Socket.IO ---
-// Creamos servidor HTTP a partir de Express
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
-
-// 1) Namespace de alumnos (/jocs)
+ 
 const jocsNsp = io.of('/jocs');
-const competitorEmails = new Set([
+const competitors = new Set([
   'dron_azul1@upc.edu',
   'dron_verde1@upc.edu',
   'dron_rojo1@upc.edu',
   'dron_amarillo1@upc.edu',
 ]);
 
+// Autenticación de drones
 jocsNsp.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth?.token;
@@ -127,32 +136,46 @@ jocsNsp.use(async (socket, next) => {
     const payload = verifyToken(token);
     if (!payload) throw new Error('Invalid token');
     const user = await User.findById((payload as any).id);
-    if (!user || user.isDeleted || !competitorEmails.has(user.email))
+    if (!user || user.isDeleted || !competitors.has(user.email)) {
       throw new Error('Unauthorized');
-    socket.data.userId = user._id.toString();
+    }
+    socket.data.userEmail = user.email;    
+    socket.data.userId    = user._id.toString();
     next();
   } catch {
     next(new Error('Authentication error'));
   }
 });
 
+// Al conectar cada dron
 jocsNsp.on('connection', socket => {
+  console.log(`→ Drone ${socket.data.userEmail} (${socket.data.userId}) connected to /jocs`);
+
+  // Se une a la sala de juego
   socket.on('join', ({ sessionId }) => {
     socket.join(sessionId);
     const count = jocsNsp.adapter.rooms.get(sessionId)?.size ?? 0;
     jocsNsp.to(sessionId).emit('waiting', { msg: `Esperando jugadores: ${count}` });
-    profNsp.emit('lobbyUpdate', { sessionId, count });
   });
-  socket.on('control', ({ sessionId, action, payload }) => {
-    const update = { action, payload, by: socket.data.userId };
-    jocsNsp.to(sessionId).emit('state_update', update);
+
+  // Control desde el dron: reenviamos estado a los demás drones y forward a profesor
+  socket.on('control', data => {
+    const { sessionId, action, payload } = data;
+    socket.to(sessionId).emit('state_update', { action, payload, by: socket.data.userEmail });
+    profNsp.to(sessionId).emit('control', data);
+  });
+
+  // Profesor puede iniciar partida directamente en este namespace
+  socket.on('start_game_from_professor', ({ sessionId }) => {
+    console.log(`[jocs] start_game_from_professor for session ${sessionId}`);
+    jocsNsp.to(sessionId).emit('game_started', { sessionId });
   });
 });
 
-// Namespace del profesor (/professor)
+
 const profNsp = io.of('/professor');
 
-// Autenticación por clave ADMIN_KEY
+// Auth middleware para profesor
 profNsp.use((socket, next) => {
   const key = socket.handshake.auth?.key;
   if (key === process.env.ADMIN_KEY) return next();
@@ -160,13 +183,19 @@ profNsp.use((socket, next) => {
 });
 
 profNsp.on('connection', socket => {
-  console.log('Profesor conectado');
-  socket.on('startCompetition', ({ sessionId }) => {
+  socket.on('startCompetition', async ({ sessionId }) => {
+    socket.join(sessionId);
+    const doc = await Session.findById(sessionId).select('scenario mode').lean();
+    if (!doc) {
+      console.error('Sesión no encontrada al iniciar competition', sessionId);
+      return;
+    }
+    jocsNsp.to(sessionId).emit('scenario', doc.scenario);
     jocsNsp.to(sessionId).emit('game_started', { sessionId });
   });
 });
 
-// --- Namespace de chat entre usuarios ---
+
 export const chatNsp = io.of('/chat');
 
 chatNsp.use(async (socket, next) => {
@@ -174,10 +203,10 @@ chatNsp.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) throw new Error('No token');
     const payload = verifyToken(token);
-    if (!payload) throw new Error('Invalid token');
+    if (!payload || !(payload as any).id) throw new Error('Invalid token');
     const user = await User.findById((payload as any).id);
     if (!user || user.isDeleted) throw new Error('Unauthorized');
-    socket.data.userId = user._id.toString();
+    socket.data.userId = user._id.toString();      
     next();
   } catch {
     next(new Error('Authentication error'));
@@ -185,11 +214,33 @@ chatNsp.use(async (socket, next) => {
 });
 
 chatNsp.on('connection', socket => {
-  const uid = socket.data.userId;
-  socket.join(uid);  // cada usuario en su “room”
-  console.log(` Usuario ${uid} conectado al chat`);
-});
+  const uid = socket.data.userId as string;
+  socket.join(uid);
+  console.log(`→ Usuario ${uid} conectado al chat`);
 
+  socket.on('send_message', async (data) => {
+    try {
+      const { senderId, receiverId, content } = data;
+      // Guarda en BBDD
+      const msg = await sendMessage(senderId, receiverId, content);
+
+      // Prepara payload con IDs string
+      const payload = msg.toObject();
+      payload.senderId   = payload.senderId.toString();
+      payload.receiverId = payload.receiverId.toString();
+
+      // Emite a rooms correctos
+      chatNsp.to(payload.receiverId).emit('new_message', payload);
+      chatNsp.to(payload.senderId).emit('new_message', payload);
+    } catch (err) {
+      console.error('Error en send_message WS:', err);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`← Usuario ${uid} desconectado del chat`);
+  });
+});
 
 httpServer.listen(LOCAL_PORT, () => {
   console.log(`API y WS corriendo en puerto ${LOCAL_PORT}`);

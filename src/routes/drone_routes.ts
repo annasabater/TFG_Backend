@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { ensureOwner } from '../middleware/isOwner.js';
+import { checkJwt } from '../middleware/session.js';
 import {
   createDroneHandler,
   deleteDroneHandler,
@@ -7,7 +9,12 @@ import {
   updateDroneHandler,
   addDroneReviewHandler,
   getDronesByCategoryHandler,
-  getDronesByPriceRangeHandler
+  getDronesByPriceRangeHandler,
+  addFavoriteHandler,
+  removeFavoriteHandler,
+  getFavoritesHandler,
+  getMyDronesHandler,
+  purchaseDroneHandler,
 } from '../controllers/drone_controller.js';
 
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
@@ -25,25 +32,38 @@ const router = Router();
  * @openapi
  * /api/drones:
  *   get:
- *     summary: Obtener todos los drones
- *     tags:
- *       - Drones
+ *     summary: Obtener todos los drones (filtros y paginación)
+ *     tags: [Drones]
  *     parameters:
  *       - in: query
+ *         name: q
+ *         schema: { type: string }
+ *         description: Búsqueda de texto libre
+ *       - in: query
+ *         name: category
+ *         schema: { type: string, enum: [venta, alquiler] }
+ *       - in: query
+ *         name: condition
+ *         schema: { type: string, enum: [nuevo, usado] }
+ *       - in: query
+ *         name: location
+ *         schema: { type: string }
+ *       - in: query
+ *         name: priceMin
+ *         schema: { type: number }
+ *       - in: query
+ *         name: priceMax
+ *         schema: { type: number }
+ *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *         description: Número de página para paginación
+ *         schema: { type: integer }
  *       - in: query
  *         name: limit
- *         schema:
- *           type: integer
- *         description: Cantidad de drones por página
+ *         schema: { type: integer }
  *     responses:
- *       200:
- *         description: Lista de drones obtenida correctamente
+ *       200: { description: Lista filtrada de drones }
  */
-router.get('/drones',generalRateLimiter, getDronesHandler);
+router.get('/drones', generalRateLimiter, getDronesHandler);
 
 /**
  * @openapi
@@ -123,81 +143,58 @@ router.get('/drones/:id',generalRateLimiter, getDroneByIdHandler);
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/drones',generalRateLimiter, createDroneHandler);
-
+router.post(
+  '/drones',
+  generalRateLimiter,
+  checkJwt,          
+  createDroneHandler
+);
 
 /**
  * @openapi
  * /api/drones/{id}:
  *   put:
  *     summary: Actualizar un dron existente
- *     tags:
- *       - Drones
+ *     tags: [Drones]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         schema:
- *           type: string
- *         description: ID único del dron a actualizar
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               model:
- *                 type: string
- *               price:
- *                 type: number
- *               description:
- *                 type: string
- *               type:
- *                 type: string
- *                 enum: [venta, alquiler]
- *               condition:
- *                 type: string
- *                 enum: [nuevo, usado]
- *               location:
- *                 type: string
- *               contact:
- *                 type: string
- *               category:
- *                 type: string
- *               images:
- *                 type: array
- *                 items:
- *                   type: string
+ *         schema: { type: string }
  *     responses:
- *       200:
- *         description: Dron actualizado correctamente
- *       404:
- *         description: Dron no encontrado
+ *       200: { description: Dron actualizado correctamente }
+ *       404: { description: Dron no encontrado }
  */
-router.put('/drones/:id',generalRateLimiter, updateDroneHandler);
+router.put(
+  '/drones/:id',
+  generalRateLimiter,
+  checkJwt,
+  ensureOwner,
+  updateDroneHandler
+);
 
 /**
  * @openapi
  * /api/drones/{id}:
  *   delete:
  *     summary: Eliminar un dron
- *     tags:
- *       - Drones
+ *     tags: [Drones]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         schema:
- *           type: string
- *         description: ID único del dron a eliminar
+ *         schema: { type: string }
  *     responses:
- *       200:
- *         description: Dron eliminado correctamente
- *       404:
- *         description: Dron no encontrado
+ *       200: { description: Dron eliminado correctamente }
+ *       404: { description: Dron no encontrado }
  */
-router.delete('/drones/:id',generalRateLimiter, deleteDroneHandler);
+router.delete(
+  '/drones/:id',
+  generalRateLimiter,
+  checkJwt,
+  ensureOwner,
+  deleteDroneHandler
+);
 
 /**
  * @openapi
@@ -287,5 +284,184 @@ router.get('/drones/category/:category',generalRateLimiter, getDronesByCategoryH
  *         description: Parámetros de precio inválidos
  */
 router.get('/drones/price',generalRateLimiter, getDronesByPriceRangeHandler);
+
+/**
+ * @openapi
+ * /api/users/{userId}/favourites/{droneId}:
+ *   post:
+ *     summary: Añadir un dron a favoritos
+ *     tags: [Favourites]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: droneId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Lista actualizada de favoritos }
+ *   delete:
+ *     summary: Eliminar un dron de favoritos
+ *     tags: [Favourites]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: droneId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Lista actualizada de favoritos }
+ *
+ * /api/users/{userId}/favourites:
+ *   get:
+ *     summary: Obtener lista de favoritos de un usuario
+ *     tags: [Favourites]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *     responses:
+ *       200: { description: Lista paginada de favoritos }
+ */
+router.post(
+  '/users/:userId/favourites/:droneId',
+  generalRateLimiter,
+  checkJwt,            
+  addFavoriteHandler
+);
+
+router.delete(
+  '/users/:userId/favourites/:droneId',
+  generalRateLimiter,
+  checkJwt,            
+  removeFavoriteHandler
+);
+
+router.get(
+  '/users/:userId/favourites',
+  generalRateLimiter,
+  checkJwt,            
+  getFavoritesHandler
+);
+
+/**
+ * @openapi
+ * /api/users/{userId}/my-drones:
+ *   get:
+ *     summary: Llistar anuncis propis
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [pending, sold] }
+ *         description: Filtra per pendents o venuts
+ *     responses:
+ *       200: { description: Llista d’anuncis }
+ */
+router.get(
+  '/users/:userId/my-drones',
+  generalRateLimiter,
+  checkJwt,            
+  getMyDronesHandler
+);
+
+
+/**
+ * @openapi
+ * /api/drones/{id}/purchase:
+ *   post:
+ *     summary: Comprar un dron i marcar-lo com venut
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del dron a comprar
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               address:
+ *                 type: string
+ *                 description: Adreça d'enviament
+ *               phone:
+ *                 type: string
+ *                 description: Telèfon de contacte
+ *           example:
+ *             address: "C/ Exemple, 123, Ciutat"
+ *             phone: "+34912345678"
+ *     responses:
+ *       200:
+ *         description: Dron comprat i marcat com venut
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Drone'
+ *       404:
+ *         description: Dron no trobat
+ *       500:
+ *         description: Error intern del servidor
+ */
+router.post(
+  '/drones/:id/purchase',
+  generalRateLimiter,
+  checkJwt,
+  purchaseDroneHandler
+);
+
+/**
+ * @openapi
+ * /api/drones/{id}/sold:
+ *   put:
+ *     summary: Marcar un dron com venut
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del dron a marcar com venut
+ *     responses:
+ *       200:
+ *         description: Dron marcat com venut
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Drone'
+ *       404:
+ *         description: Dron no trobat
+ *       500:
+ *         description: Error intern del servidor
+ */
+router.put(
+  '/drones/:id/sold',
+  generalRateLimiter,
+  checkJwt,
+  ensureOwner,
+  purchaseDroneHandler
+);
+
 
 export default router;

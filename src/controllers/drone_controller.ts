@@ -1,42 +1,98 @@
 import { Request, Response } from 'express';
 import Drone from '../models/drone_models.js';
+import { getMyDrones } from '../service/drone_service.js';
 import mongoose from 'mongoose';
 import {
-  createDrone,
-  getDrones,
-  getDroneById,
-  updateDrone,
-  deleteDrone,
-  getOwnerByDroneId,
-  getDronesByCategory,
-  getDronesByPriceRange,
-  addReviewToDrone
-} from '../service/drone_service.js';
+    createDrone,
+    getDrones,
+    getDroneById,
+    updateDrone,
+    deleteDrone,
+    getOwnerByDroneId,
+    getDronesByCategory,
+    getDronesByPriceRange,
+    addReviewToDrone,
+    addFavorite,
+    removeFavorite,
+    getFavorites
+  } from '../service/drone_service.js';
 import exp from 'constants';
 
-// Crear un nuevo dron
+
 export const createDroneHandler = async (req: Request, res: Response) => {
   try {
-    const droneData = { ...req.body }; // sin req.user
+    const {
+      _id,
+      status,
+      createdAt,
+      ratings,
+      isSold,
+      isService,
+      ...droneData
+    } = req.body;
+
     const drone = await createDrone(droneData);
     res.status(201).json(drone);
   } catch (error: any) {
+    console.error('ERROR createDrone:', error);
     res.status(500).json({ message: error.message || 'Error al crear el dron' });
   }
 };
 
+  
+
 // Get all drones with pagination
 export const getDronesHandler = async (req: Request, res: Response) => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
-        const data = await getDrones(page, limit);
-        res.status(200).json(data);
-
-    } catch (error: any) {
-        res.status(500).json({ message: error.message || "Error al obtener drones" });
+      const page  = parseInt(req.query.page  as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+  
+      const filters = {
+        q:         req.query.q,
+        category:  req.query.category,
+        condition: req.query.condition,
+        location:  req.query.location,
+        priceMin:  req.query.priceMin ? Number(req.query.priceMin) : undefined,
+        priceMax:  req.query.priceMax ? Number(req.query.priceMax) : undefined,
+      };
+  
+      const data = await getDrones(page, limit, filters);
+      res.status(200).json(data);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
     }
-};
+  };
+  
+  /* --- Favorits --- */
+  export const addFavoriteHandler = async (req: Request, res: Response) => {
+    try {
+      const favs = await addFavorite(req.params.userId, req.params.droneId);
+      res.status(200).json(favs);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  };
+  
+  export const removeFavoriteHandler = async (req: Request, res: Response) => {
+    try {
+      const favs = await removeFavorite(req.params.userId, req.params.droneId);
+      res.status(200).json(favs);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  };
+  
+  export const getFavoritesHandler = async (req: Request, res: Response) => {
+    try {
+      const page  = parseInt(req.query.page  as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const favs  = await getFavorites(req.params.userId, page, limit);
+      res.status(200).json(favs);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  };
+  
 
 // Obtener un dron por ID
 export const getDroneByIdHandler = async (req: Request, res: Response) => {
@@ -216,3 +272,28 @@ export const addDroneReviewHandler = async (req: Request, res: Response) => {
         res.status(500).json({ message: error.message || "Error al agregar reseña" });
     }
 };
+
+
+export const getMyDronesHandler = async (req: Request, res: Response) => {
+    try {
+      const statusParam = req.query.status as string | undefined; // pending|sold
+      const list = await getMyDrones(req.params.userId, statusParam as any);
+      res.status(200).json(list);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  };
+
+  import { markDroneSold } from '../service/drone_service.js';
+
+export const purchaseDroneHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updated = await markDroneSold(id);
+    res.status(200).json(updated);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+  
