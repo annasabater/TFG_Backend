@@ -20,6 +20,7 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import { verifyToken } from './utils/jwtHandler.js';
 import User from './models/user_models.js';
 import { Message } from './models/message_models.js';
+import socialRoutes from './routes/social_routes.js';
 
 // Carga variables de entorno
 dotenv.config({ path: '../.env' });
@@ -67,6 +68,10 @@ const swaggerOptions = {
                 description: 'Juegos entre usuarios' ,
             },
             { 
+                name: 'Social media', 
+                description: 'Red social de usuarios' ,
+            },
+            { 
                 name: 'Auth', 
                 description: 'Registro y Login de usuarios' ,
             }
@@ -96,6 +101,7 @@ app.use('/api', gameRoutes);
 app.use('/api', sessionRoutes);
 app.use('/api', authRoutes);
 app.use('/api', messageRoutes);
+app.use('/api', socialRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {
@@ -205,6 +211,10 @@ profNsp.on('connection', socket => {
   console.log('Profesor conectado');
   socket.on('startCompetition', ({ sessionId }) => {
     jocsNsp.to(sessionId).emit('game_started', { sessionId });
+  });
+
+  socket.on('endCompetition', ({ sessionId }) => {
+    jocsNsp.to(sessionId).emit('game_ended', { sessionId });
   });
 });
 
