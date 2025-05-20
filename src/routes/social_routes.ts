@@ -6,6 +6,7 @@ import {
   getUserPostsHandler,
   likePostHandler,
   commentPostHandler,
+  getPostHandler,
 } from '../controllers/social_controller.js';
 import { checkJwt } from '../middleware/session.js';
 import { upload } from '../middleware/upload.js';
@@ -179,5 +180,33 @@ router.post(
   checkJwt,
   commentPostHandler,
 );
+
+/**
+ * @openapi
+ * /api/posts/{postId}:
+ *   get:
+ *     summary: Obtener un post por ID
+ *     tags: [Social]
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         description: ID del post a recuperar
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Detalle del post
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Post'
+ *       404:
+ *         description: Post no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/posts/:postId', generalRateLimiter, getPostHandler);
+
 
 export default router;

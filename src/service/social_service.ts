@@ -69,3 +69,13 @@ export const addComment = async (postId: string, userId: string, content: string
   await post.save();
   return post.comments.at(-1);
 };
+
+export const getPostById = async (
+  postId: string
+): Promise<(IPost & mongoose.Document) | null> => {
+  // Busca el post, popula author y comentarios.author
+  return await Post.findById(postId)
+    .populate('author', 'userName')
+    .populate('comments.author', 'userName')
+    .exec();
+};

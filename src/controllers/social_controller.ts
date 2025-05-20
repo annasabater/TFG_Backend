@@ -5,6 +5,7 @@ import {
   getPostsByUser,
   toggleLike,
   addComment,
+  getPostById, 
 } from '../service/social_service.js';
 import type { Multer } from 'multer'; 
 
@@ -77,5 +78,18 @@ export const commentPostHandler = async (req: Request, res: Response) => {
     res.status(201).json(c);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const getPostHandler = async (req: Request, res: Response) => {
+  try {
+    const post = await getPostById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ message: 'Post no encontrado' });
+    }
+    res.json(post);
+  } catch (err) {
+    console.error('getPost error', err);
+    res.status(500).json({ message: 'Error interno al obtener post' });
   }
 };
