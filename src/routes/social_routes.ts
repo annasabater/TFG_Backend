@@ -1,3 +1,4 @@
+// src/routes/social_routes.ts
 import express from 'express';
 import {
   createPostHandler,
@@ -7,11 +8,12 @@ import {
   commentPostHandler,
 } from '../controllers/social_controller.js';
 import { checkJwt } from '../middleware/session.js';
+import { upload } from '../middleware/upload.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-/* ------------- TAG Global ------------- */
+/* ───────────────────────────────── TAG GLOBAL ───────────────────────────────── */
 /**
  * @openapi
  * tags:
@@ -19,7 +21,7 @@ const router = express.Router();
  *     description: Endpoints de la red social (posts, likes, comentarios)
  */
 
-/* ------------- Feed público ------------- */
+/* ───────────────────────────────── FEED PÚBLICO ─────────────────────────────── */
 /**
  * @openapi
  * /api/feed:
@@ -29,17 +31,19 @@ const router = express.Router();
  *     parameters:
  *       - in: query
  *         name: page
- *         schema: { type: integer }
+ *         schema:
+ *           type: integer
  *       - in: query
  *         name: limit
- *         schema: { type: integer }
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Lista de posts paginados
  */
 router.get('/feed', generalRateLimiter, getFeedHandler);
 
-/* ------------- Posts por usuario ------------- */
+/* ───────────────────────────── POSTS DE UN USUARIO ──────────────────────────── */
 /**
  * @openapi
  * /api/users/{userId}/posts:
@@ -50,94 +54,130 @@ router.get('/feed', generalRateLimiter, getFeedHandler);
  *       - in: path
  *         name: userId
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: page
- *         schema: { type: integer }
+ *         schema:
+ *           type: integer
  *       - in: query
  *         name: limit
- *         schema: { type: integer }
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: Lista de posts del usuario
  */
 router.get('/users/:userId/posts', generalRateLimiter, getUserPostsHandler);
 
-/* ------------- Crear post ------------- */
+/* ───────────────────────────────── CREAR POST ───────────────────────────────── */
 /**
  * @openapi
  * /api/posts:
  *   post:
  *     summary: Crear un nuevo post
  *     tags: [Social]
- *     security: [{ bearerAuth: [] }]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
- *             required: [mediaUrl, mediaType]
+ *             required:
+ *               - file
+ *               - mediaType
  *             properties:
- *               mediaUrl:   { type: string }
- *               mediaType:  { type: string, enum: [image, video] }
- *               description:{ type: string }
- *               location:   { type: string }
- *               tags:       { type: array,  items: { type: string } }
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               mediaType:
+ *                 type: string
+ *                 enum: [image, video]
+ *               description:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *               tags:
+ *                 type: string
+ *                 description: JSON array como texto o varios campos `tags[]`
  *     responses:
- *       201: { description: Post creado }
- *       401: { description: No autorizado }
+ *       201:
+ *         description: Post creado
+ *       401:
+ *         description: No autorizado
  */
-router.post('/posts', generalRateLimiter, checkJwt, createPostHandler);
+router.post(
+  '/posts',
+  generalRateLimiter,
+  checkJwt,
+  upload.single('file'),
+  createPostHandler,
+);
 
-/* ------------- Like ------------- */
+/* ───────────────────────────────── LIKE / UNLIKE ────────────────────────────── */
 /**
  * @openapi
  * /api/posts/{postId}/like:
  *   post:
  *     summary: Dar o quitar like a un post
  *     tags: [Social]
- *     security: [{ bearerAuth: [] }]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: postId
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Número total de likes
  */
-router.post('/posts/:postId/like', generalRateLimiter, checkJwt, likePostHandler);
+router.post(
+  '/posts/:postId/like',
+  generalRateLimiter,
+  checkJwt,
+  likePostHandler,
+);
 
-/* ------------- Comentarios ------------- */
+/* ───────────────────────────────── COMENTARIOS ──────────────────────────────── */
 /**
  * @openapi
  * /api/posts/{postId}/comments:
  *   post:
  *     summary: Añadir comentario a un post
  *     tags: [Social]
- *     security: [{ bearerAuth: [] }]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: postId
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [content]
+ *             required:
+ *               - content
  *             properties:
- *               content: { type: string, maxLength: 500 }
+ *               content:
+ *                 type: string
+ *                 maxLength: 500
  *     responses:
- *       201: { description: Comentario creado }
+ *       201:
+ *         description: Comentario creado
  */
-router.post('/posts/:postId/comments',
+router.post(
+  '/posts/:postId/comments',
   generalRateLimiter,
   checkJwt,
-  commentPostHandler
+  commentPostHandler,
 );
 
 export default router;

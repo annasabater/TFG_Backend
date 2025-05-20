@@ -1,32 +1,36 @@
 // src/server.ts
-import express from 'express';
-import http from 'http';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
-import { Server } from 'socket.io';
-import userRoutes from './routes/user_routes.js';
-import forumRoutes from './routes/forum_routes.js';
-import droneRoutes from './routes/drone_routes.js';
-import gameRoutes from './routes/game_routes.js';
-import authRoutes from './routes/auth_routes.js';
-import messageRoutes from './routes/message_routes.js';
-import sessionRoutes from './routes/session_routes.js';
-import { corsHandler } from './middleware/corsHandler.js';
-import { loggingHandler } from './middleware/loggingHandler.js';
-import { routeNotFound } from './middleware/routeNotFound.js';
-import swaggerUi from 'swagger-ui-express';
-import swaggerJSDoc from 'swagger-jsdoc';
-import { verifyToken } from './utils/jwtHandler.js';
-import User from './models/user_models.js';
-import { Message } from './models/message_models.js';
-import socialRoutes from './routes/social_routes.js';
+import express        from 'express';
+import http           from 'http';
+import mongoose       from 'mongoose';
+import dotenv         from 'dotenv';
+import path           from 'path';
+import cookieParser   from 'cookie-parser';
+import { Server }     from 'socket.io';
 
-// Carga variables de entorno
+import userRoutes     from './routes/user_routes.js';
+import forumRoutes    from './routes/forum_routes.js';
+import droneRoutes    from './routes/drone_routes.js';
+import gameRoutes     from './routes/game_routes.js';
+import authRoutes     from './routes/auth_routes.js';
+import messageRoutes  from './routes/message_routes.js';
+import sessionRoutes  from './routes/session_routes.js';
+import socialRoutes   from './routes/social_routes.js';
+
+import { corsHandler }     from './middleware/corsHandler.js';
+import { loggingHandler }  from './middleware/loggingHandler.js';
+import { routeNotFound }   from './middleware/routeNotFound.js';
+import { UPLOAD_DIR }      from './middleware/upload.js';     
+import swaggerUi           from 'swagger-ui-express';
+import swaggerJSDoc        from 'swagger-jsdoc';
+
+import { verifyToken } from './utils/jwtHandler.js';
+import User            from './models/user_models.js';
+import { Message }     from './models/message_models.js';
+
+
 dotenv.config({ path: '../.env' });
 
-// Crear app de Express
-const app = express();
+const app        = express();
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 
 // Configuración de Swagger
@@ -102,6 +106,7 @@ app.use('/api', sessionRoutes);
 app.use('/api', authRoutes);
 app.use('/api', messageRoutes);
 app.use('/api', socialRoutes);
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 // Ruta de prueba
 app.get('/', (_req, res) => {

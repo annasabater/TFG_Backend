@@ -6,22 +6,31 @@ import {
   toggleLike,
   addComment,
 } from '../service/social_service.js';
+import type { Multer } from 'multer'; 
 
 /* Crear post */
 export const createPostHandler = async (req: Request, res: Response) => {
   try {
-    const { mediaUrl, mediaType, description, location, tags } = req.body;
+    const file = (req as Request & { file: Express.Multer.File }).file;
+    if (!file) return res.status(400).json({ message: 'Imagen requerida' });
+
+    const { mediaType, description, location, tags = '[]' } = req.body;
+    if (!['image', 'video'].includes(mediaType))
+      return res.status(422).json({ message: 'mediaType inválido' });
+
     const newPost = await createPost({
-      author: (req as any).userId,
-      mediaUrl,
+      author : (req as any).userId,
+      mediaUrl   : `/uploads/${file.filename}`,
       mediaType,
       description,
       location,
-      tags,
+      tags       : Array.isArray(tags) ? tags : JSON.parse(tags),
     });
+
     res.status(201).json(newPost);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: 'Error interno' });
   }
 };
 
@@ -30,9 +39,11 @@ export const getFeedHandler = async (req: Request, res: Response) => {
   try {
     const page  = Number(req.query.page  ?? 1);
     const limit = Number(req.query.limit ?? 10);
-    res.json(await getFeed(page, limit));
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    const feed  = await getFeed(page, limit);
+    res.json(feed);
+  } catch (err) {
+    console.error('getFeed error', err);
+    res.status(500).json({ message: 'Error obteniendo feed' });
   }
 };
 
