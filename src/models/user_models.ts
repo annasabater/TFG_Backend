@@ -2,14 +2,16 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-    userName : { type: String, required: true },
-    email    : { type: String, required: true, unique: true },
-    password : { type: String, required: true },
-    isDeleted: { type: Boolean, default: false },
-    role     : { type: String, enum: ['Administrador', 'Usuario', 'Empresa', 'Gobierno'], default: 'Usuario' },
+  userName : { type: String, required: true },
+  email    : { type: String, required: true, unique: true },
+  password : { type: String, required: true },
+  isDeleted: { type: Boolean, default: false },
+  role     : { type: String, enum: ['Administrador', 'Usuario', 'Empresa', 'Gobierno'], default: 'Usuario' },
 
-    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drone', default: [] }]
-  });
+  favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drone', default: [] }],
+  following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] }], 
+});
+
   
 
 userSchema.methods.toJSON = function () {
@@ -20,14 +22,16 @@ userSchema.methods.toJSON = function () {
 };
 
 export interface IUser {
-    _id?: mongoose.Types.ObjectId;
-    password: string;
-    userName: string;
-    email: string;
-    isDeleted?: boolean;
-    role: 'Administrador' | 'Usuario' | 'Empresa' | 'Gobierno';
-    favorites?: mongoose.Types.ObjectId[];          
-  }
+  _id?: mongoose.Types.ObjectId;
+  password: string;
+  userName: string;
+  email: string;
+  isDeleted?: boolean;
+  role: 'Administrador' | 'Usuario' | 'Empresa' | 'Gobierno';
+  favorites?: mongoose.Types.ObjectId[];
+  following?: mongoose.Types.ObjectId[]; 
+}
+
 
 const User = mongoose.model('User', userSchema);
 export default User;

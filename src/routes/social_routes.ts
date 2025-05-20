@@ -11,6 +11,9 @@ import {
 import { checkJwt } from '../middleware/session.js';
 import { upload } from '../middleware/upload.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
+import { followUser, unfollowUser } from '../controllers/follow_controller.js';
+import { getFollowingFeedHandler } from '../controllers/social_controller.js';
+
 
 const router = express.Router();
 
@@ -208,5 +211,75 @@ router.post(
  */
 router.get('/posts/:postId', generalRateLimiter, getPostHandler);
 
+/**
+ * @openapi
+ * /api/users/{userId}/follow:
+ *   post:
+ *     summary: Seguir a un usuario
+ *     tags: [Social]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         description: ID del usuario a seguir
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Usuario seguido correctamente
+ *       400:
+ *         description: No puedes seguirte a ti mismo
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.post('/users/:userId/follow', checkJwt, followUser);
+
+/**
+ * @openapi
+ * /api/users/{userId}/unfollow:
+ *   post:
+ *     summary: Dejar de seguir a un usuario
+ *     tags: [Social]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         description: ID del usuario a dejar de seguir
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Has dejado de seguir al usuario
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.post('/users/:userId/unfollow', checkJwt, unfollowUser);
+
+/**
+ * @openapi
+ * /api/posts/following:
+ *   get:
+ *     summary: Feed con publicaciones de usuarios seguidos
+ *     tags: [Social]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de publicaciones de seguidos
+ */
+router.get('/posts/following', checkJwt, getFollowingFeedHandler);
 
 export default router;
