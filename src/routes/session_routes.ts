@@ -10,6 +10,7 @@ import {
 } from '../controllers/session_controller.js';
 import { checkJwt, verifyRole } from '../middleware/session.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
+import { Session } from '../models/session_models.js';
 
 const router = Router();
 
@@ -77,34 +78,6 @@ router.post(
   generalRateLimiter,
   checkJwt,
   createSessionHandler
-);
-
-/**
- * @openapi
- * /api/sessions/open:
- *   get:
- *     summary: Listar todas las sesiones abiertas (estado WAITING)
- *     tags:
- *       - Sessions
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       '200':
- *         description: Lista de sesiones abiertas
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Session'
- *       '401':
- *         description: No autorizado
- */
-router.get(
-  '/sessions/open',
-  generalRateLimiter,
-  checkJwt,
-  listPendingHandler  // si quieres otro handler, crea uno específico
 );
 
 /**
@@ -255,6 +228,68 @@ router.get(
   generalRateLimiter,
   checkJwt,
   getScenarioHandler
+);
+
+
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *     Session:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         host:
+ *           type: string
+ *         scenario:
+ *           type: string
+ *         mode:
+ *           type: string
+ *         status:
+ *           type: string
+ *         participants:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               user:
+ *                 type: string
+ *               status:
+ *                 type: string
+ */
+
+/**
+ * @openapi
+ * /api/sessions/open:
+ *   get:
+ *     summary: Listar sesiones abiertas o en curso (estado WAITING o RUNNING)
+ *     tags:
+ *       - Sessions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Lista de sesiones en WAITING o RUNNING
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Session'
+ *       '401':
+ *         description: No autorizado
+ */
+router.get(
+  '/sessions/open',
+  generalRateLimiter,
+  checkJwt,
+  async (req, res) => {
+    const sessions = await Session.find({
+      status: { $in: ['WAITING', 'RUNNING'] }
+    });
+    res.json(sessions);
+  }
 );
 
 export default router;

@@ -1,4 +1,5 @@
 //src/middleware/session.ts
+
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwtHandler.js";
 import jwt, { JwtPayload, verify } from "jsonwebtoken";
@@ -11,25 +12,20 @@ interface RequestExt extends Request {
 
 // Función auxiliar para centralizar de dónde viene el token
 const getTokenFromRequest = (req: RequestExt): string | null => {
-    // 1 Authorization header
     const authHeader = req.headers.authorization || req.headers.Authorization;
     if (authHeader?.toString().startsWith("Bearer ")) {
         return authHeader.toString().split(" ").pop() as string;
     }
 
-    // 2 Cookie (requiere cookie-parser en tu express app)
     if (req.cookies) {
-        // ajusta el nombre de la cookie según cómo la setees
         if (req.cookies.token) return req.cookies.token;
         if (req.cookies.refreshToken) return req.cookies.refreshToken;
     }
 
-    // 3 Body
     if (req.body?.token) {
         return req.body.token;
     }
 
-    // 4 Query
     if (req.query?.token) {
         return req.query.token as string;
     }
@@ -107,7 +103,5 @@ const verifyRole = async (req: RequestExt, res: Response) => {
         return "Token inválido o expirado";
     }
 };
-
-
 
 export { checkJwt, verifyRole };
