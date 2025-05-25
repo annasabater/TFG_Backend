@@ -16,6 +16,7 @@ import {
     removeFavorite,
     getFavorites
   } from '../service/drone_service.js';
+import { getCommentsByDrone } from '../service/comment_service.js';
 import exp from 'constants';
 
 
@@ -31,6 +32,15 @@ export const createDroneHandler = async (req: Request, res: Response) => {
       ...droneData
     } = req.body;
 
+    // Manejar imágenes subidas
+    let images: string[] = [];
+    if ((req as any).files && Array.isArray((req as any).files)) {
+      images = (req as any).files.map((file: any) => '/uploads/' + file.filename);
+    }
+    if (images.length > 0) {
+      droneData.images = images;
+    }
+
     const drone = await createDrone(droneData);
     res.status(201).json(drone);
   } catch (error: any) {
@@ -43,25 +53,45 @@ export const createDroneHandler = async (req: Request, res: Response) => {
 
 // Get all drones with pagination
 export const getDronesHandler = async (req: Request, res: Response) => {
-    try {
-      const page  = parseInt(req.query.page  as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-  
-      const filters = {
-        q:         req.query.q,
-        category:  req.query.category,
-        condition: req.query.condition,
-        location:  req.query.location,
-        priceMin:  req.query.priceMin ? Number(req.query.priceMin) : undefined,
-        priceMax:  req.query.priceMax ? Number(req.query.priceMax) : undefined,
-      };
-  
-      const data = await getDrones(page, limit, filters);
-      res.status(200).json(data);
-    } catch (e: any) {
-      res.status(500).json({ message: e.message });
+  try {
+    const page  = parseInt(req.query.page as string) || 1;
+    let limit = parseInt(req.query.limit as string) || 10;
+    if (limit > 20) limit = 20;
+
+    const filters: any = {
+      q: req.query.q,
+      category: req.query.category,
+      condition: req.query.condition,
+      location: req.query.location,
+      priceMin: req.query.minPrice ? Number(req.query.minPrice) : undefined,
+      priceMax: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
+      name: req.query.name,
+      model: req.query.model
+    };
+    // El filtro minRating se aplica después de la consulta
+    const minRating = req.query.minRating ? Number(req.query.minRating) : undefined;
+
+    let drones = await getDrones(page, limit, filters);
+    // Filtrar por name y model (búsqueda parcial, case-insensitive)
+    if (filters.name) {
+      drones = drones.filter((d: any) => d.model && d.model.toLowerCase().includes(filters.name.toLowerCase()));
     }
-  };
+    if (filters.model) {
+      drones = drones.filter((d: any) => d.model && d.model.toLowerCase().includes(filters.model.toLowerCase()));
+    }
+    // Filtrar por minRating usando el virtual
+    if (minRating) {
+      drones = drones.filter((d: any) => (d.averageRating || 0) >= minRating);
+    }
+    // Ordenar por fecha de creación descendente
+    drones = drones.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Incluir averageRating en la respuesta
+    const result = drones.map((d: any) => ({ ...d.toObject(), averageRating: d.averageRating }));
+    res.status(200).json(result);
+  } catch (e: any) {
+    res.status(500).json({ message: e.message });
+  }
+};
   
   /* --- Favorits --- */
   export const addFavoriteHandler = async (req: Request, res: Response) => {
@@ -108,7 +138,10 @@ export const getDroneByIdHandler = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Drone no encontrado' });
         }
 
-        res.status(200).json(drone);
+        // Obtener comentarios anidados
+        const comments = await getCommentsByDrone(drone._id.toString());
+
+        res.status(200).json({ ...drone.toObject(), comments });
     } catch (error: any) {
         res.status(500).json({ message: error.message || "Error al obtener el dron" });
     }
@@ -152,7 +185,17 @@ export const updateDroneHandler = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Dron no encontrado' });
         }
 
-        const updatedDrone = await updateDrone(drone._id.toString(), req.body);
+        // Manejar imágenes subidas
+        let images: string[] = [];
+        if ((req as any).files && Array.isArray((req as any).files)) {
+          images = (req as any).files.map((file: any) => '/uploads/' + file.filename);
+        }
+        const updateData = { ...req.body };
+        if (images.length > 0) {
+          updateData.images = images;
+        }
+
+        const updatedDrone = await updateDrone(drone._id.toString(), updateData);
 
         res.status(200).json(updatedDrone);
     } catch (error: any) {
@@ -296,4 +339,3 @@ export const purchaseDroneHandler = async (req: Request, res: Response) => {
   }
 };
 
-  

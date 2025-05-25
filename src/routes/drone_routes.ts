@@ -16,6 +16,7 @@ import {
   getMyDronesHandler,
   purchaseDroneHandler,
 } from '../controllers/drone_controller.js';
+import { uploadImages, validateMinImages } from '../middleware/upload.js';
 
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
@@ -36,32 +37,100 @@ const router = Router();
  *     tags: [Drones]
  *     parameters:
  *       - in: query
- *         name: q
+ *         name: minPrice
+ *         schema: { type: number }
+ *         description: Precio mínimo
+ *       - in: query
+ *         name: maxPrice
+ *         schema: { type: number }
+ *         description: Precio máximo
+ *       - in: query
+ *         name: name
  *         schema: { type: string }
- *         description: Búsqueda de texto libre
+ *         description: Búsqueda parcial por nombre (case-insensitive)
+ *       - in: query
+ *         name: model
+ *         schema: { type: string }
+ *         description: Modelo del dron
  *       - in: query
  *         name: category
  *         schema: { type: string, enum: [venta, alquiler] }
+ *         description: Categoría
  *       - in: query
  *         name: condition
  *         schema: { type: string, enum: [nuevo, usado] }
+ *         description: Condición
  *       - in: query
- *         name: location
- *         schema: { type: string }
- *       - in: query
- *         name: priceMin
- *         schema: { type: number }
- *       - in: query
- *         name: priceMax
- *         schema: { type: number }
+ *         name: minRating
+ *         schema: { type: number, minimum: 1, maximum: 5 }
+ *         description: Rating promedio mínimo (solo comentarios raíz)
  *       - in: query
  *         name: page
- *         schema: { type: integer }
+ *         schema: { type: integer, minimum: 1 }
+ *         description: Página actual
  *       - in: query
  *         name: limit
- *         schema: { type: integer }
+ *         schema: { type: integer, minimum: 1, maximum: 20 }
+ *         description: Elementos por página (máx. 20)
  *     responses:
- *       200: { description: Lista filtrada de drones }
+ *       200:
+ *         description: Lista filtrada de drones
+ *
+ *   post:
+ *     summary: Crear un nuevo dron
+ *     description: Crea un nuevo dron con imágenes (mínimo 1, máximo 4).
+ *     tags: [Drones]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ownerId
+ *               - model
+ *               - price
+ *               - category
+ *               - condition
+ *               - location
+ *               - images
+ *             properties:
+ *               ownerId:
+ *                 type: string
+ *               model:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               details:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [venta, alquiler]
+ *               condition:
+ *                 type: string
+ *                 enum: [nuevo, usado]
+ *               location:
+ *                 type: string
+ *               contact:
+ *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 minItems: 1
+ *                 maxItems: 4
+ *           encoding:
+ *             images:
+ *               style: form
+ *               explode: false
+ *     responses:
+ *       201:
+ *         description: Dron creado correctamente
+ *       400:
+ *         description: Error en la creación del dron
+ *       500:
+ *         description: Error interno del servidor
  */
 router.get('/drones', generalRateLimiter, getDronesHandler);
 
@@ -146,7 +215,9 @@ router.get('/drones/:id',generalRateLimiter, getDroneByIdHandler);
 router.post(
   '/drones',
   generalRateLimiter,
-  checkJwt,          
+  checkJwt,
+  uploadImages,
+  validateMinImages,
   createDroneHandler
 );
 
@@ -170,6 +241,8 @@ router.put(
   generalRateLimiter,
   checkJwt,
   ensureOwner,
+  uploadImages,
+  validateMinImages,
   updateDroneHandler
 );
 

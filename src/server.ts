@@ -15,6 +15,7 @@ import authRoutes     from './routes/auth_routes.js';
 import messageRoutes  from './routes/message_routes.js';
 import sessionRoutes  from './routes/session_routes.js';
 import socialRoutes   from './routes/social_routes.js';
+import commentRoutes  from './routes/comment_routes.js';
 
 import { corsHandler }     from './middleware/corsHandler.js';
 import { loggingHandler }  from './middleware/loggingHandler.js';
@@ -106,6 +107,7 @@ app.use('/api', sessionRoutes);
 app.use('/api', authRoutes);
 app.use('/api', messageRoutes);
 app.use('/api', socialRoutes);
+app.use('/api', commentRoutes);
 app.use('/uploads', express.static(UPLOAD_DIR));
 
 // Ruta de prueba
