@@ -35,7 +35,7 @@ export const createDroneHandler = async (req: Request, res: Response) => {
     // Manejar imágenes subidas
     let images: string[] = [];
     if ((req as any).files && Array.isArray((req as any).files)) {
-      images = (req as any).files.map((file: any) => '/uploads/' + file.filename);
+      images = (req as any).files.map((file: any) => 'http://localhost:9000/uploads/' + file.filename);
     }
     if (images.length > 0) {
       droneData.images = images;
