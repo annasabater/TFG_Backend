@@ -31,7 +31,19 @@ export async function createDroneHandler(req: Request, res: Response) {
 
 export async function getDronesHandler(req: Request, res: Response) {
   try {
-    const drones = await getDrones();
+    // Recoger filtros de la query
+    const filters: any = {
+      min: req.query.min,
+      max: req.query.max,
+      minRating: req.query.minRating,
+      category: req.query.category,
+      condition: req.query.condition,
+      location: req.query.location
+      // ...puedes añadir más filtros aquí si lo necesitas...
+    };
+    // Limpiar filtros vacíos
+    Object.keys(filters).forEach(key => (filters[key] === undefined || filters[key] === '') && delete filters[key]);
+    const drones = await getDrones(filters);
     return res.status(200).json(drones);
   } catch (error: any) {
     return res.status(500).json({ message: error.message });

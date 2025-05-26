@@ -10,20 +10,26 @@ const validateUserNotDeleted = async (userId: string) => {
 
 const buildQuery = (filters: any = {}) => {
   const q: any = {};
-  if (filters.category)  q.category  = filters.category;                  // venta | alquiler
-  if (filters.condition) q.condition = filters.condition;                 // nuevo | usado
+  if (filters.category)  q.category  = filters.category;
+  if (filters.condition) q.condition = filters.condition;
   if (filters.location)  q.location  = { $regex: filters.location, $options: 'i' };
-  if (filters.priceMin !== undefined && filters.priceMax !== undefined) {
-    q.price = { $gte: filters.priceMin, $lte: filters.priceMax };
+
+  if (filters.priceMin !== undefined || filters.priceMax !== undefined) {
+    q.price = {};
+    if (filters.priceMin !== undefined) q.price.$gte = filters.priceMin;
+    if (filters.priceMax !== undefined) q.price.$lte = filters.priceMax;
   }
+
   if (filters.q) {
     q.$or = [
       { model:   { $regex: filters.q, $options: 'i' } },
       { details: { $regex: filters.q, $options: 'i' } }
     ];
   }
+
   return q;
 };
+
 
 /* ---------- CRUD principal ---------- */
 
