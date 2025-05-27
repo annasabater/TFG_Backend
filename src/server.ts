@@ -10,7 +10,6 @@ import { Server }     from 'socket.io';
 import userRoutes     from './routes/user_routes.js';
 import forumRoutes    from './routes/forum_routes.js';
 import droneRoutes    from './routes/drone_routes.js';
-import gameRoutes     from './routes/game_routes.js';
 import authRoutes     from './routes/auth_routes.js';
 import messageRoutes  from './routes/message_routes.js';
 import sessionRoutes  from './routes/session_routes.js';
@@ -101,7 +100,6 @@ app.use(corsHandler);
 app.use('/api', userRoutes);
 app.use('/api', forumRoutes);
 app.use('/api', droneRoutes);
-app.use('/api', gameRoutes);
 app.use('/api', sessionRoutes);
 app.use('/api', authRoutes);
 app.use('/api', messageRoutes);
@@ -176,18 +174,25 @@ jocsNsp.on('connection', socket => {
   // Unirse a sesión
   socket.on('join', ({ sessionId }) => {
     socket.join(sessionId);
-    const room = jocsNsp.adapter.rooms.get(sessionId);
-    const count = room?.size ?? 0;
 
-    // Emisión de estado “waiting” con lista de drones
-    const connectedEmails = Array.from(room ?? [])
+    const room = jocsNsp.adapter.rooms.get(sessionId) ?? new Set();
+
+    const connectedEmails = Array.from(room)
       .map(id => jocsNsp.sockets.get(id)?.data?.email)
-      .filter(Boolean);
+      .filter((e): e is string => Boolean(e));
+
+    const competitorConnected = connectedEmails
+      .filter(email => competitorEmails.has(email));
+
+    const count = competitorConnected.length;
+
+    // Aviso a alumnos y profesor
     jocsNsp.to(sessionId).emit('waiting', {
       msg: `Esperando jugadores: ${count}`,
-      drones: connectedEmails
+      drones: competitorConnected
     });
     profNsp.emit('lobbyUpdate', { sessionId, count });
+
 
     // Reemisión de estado actual (fences & obstacles)
     if (!gameState[sessionId]) {
@@ -196,16 +201,12 @@ jocsNsp.on('connection', socket => {
     const state = gameState[sessionId];
     state.fences.forEach(({ drone, geometry }) => {
       socket.emit('state_update', {
-        drone,
-        action: 'fence_add',
-        payload: { geometry }
+        drone, action: 'fence_add', payload: { geometry }
       });
     });
     state.obstacles.forEach(({ drone, geometry }) => {
       socket.emit('state_update', {
-        drone,
-        action: 'obstacle_add',
-        payload: { geometry }
+        drone, action: 'obstacle_add', payload: { geometry }
       });
     });
   });
@@ -266,7 +267,22 @@ jocsNsp.on('connection', socket => {
     });
   });
 
-  // Obstacles
+  socket.on('score', ({ sessionId, drone, score }) => {
+    jocsNsp.to(sessionId).emit('state_update', {
+      drone,
+      action : 'score_update',
+      payload: { score }
+    });
+  });
+
+  socket.on('drone_state', ({ sessionId, drone, state }) => {
+    jocsNsp.to(sessionId).emit('state_update', {
+      drone,
+      action : 'state',
+      payload: { state }
+    });
+  });
+
   socket.on('obstacle', ({ sessionId, drone, type, geometry, event }) => {
     if (!gameState[sessionId]) {
       gameState[sessionId] = { fences: [], obstacles: [] };
