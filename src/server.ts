@@ -34,6 +34,7 @@ const app        = express();
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 
 // Configuración de Swagger
+const path_constant = process.env.SWAGGER_PATH || './routes/*.js';
 const swaggerOptions = {
     definition: {
         openapi: '3.0.0',
@@ -86,7 +87,7 @@ const swaggerOptions = {
             }
         ]
     },
-    apis: ['./routes/*.js'] 
+    apis: [path_constant] 
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
@@ -379,6 +380,7 @@ chatNsp.on('connection', socket => {
 
 app.use(routeNotFound);
 
-httpServer.listen(LOCAL_PORT, () => {
+httpServer.listen(Number(LOCAL_PORT), '0.0.0.0', () => {
   console.log(`API y WS corriendo en puerto ${LOCAL_PORT}`);
 });
+
