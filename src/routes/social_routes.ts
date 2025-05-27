@@ -1,4 +1,5 @@
 // src/routes/social_routes.ts
+
 import express from 'express';
 import {
   createPostHandler,
@@ -7,17 +8,18 @@ import {
   likePostHandler,
   commentPostHandler,
   getPostHandler,
+  getFollowingFeedHandler,
+  updatePostHandler,
+  deletePostHandler,
+  getUserProfileHandler
 } from '../controllers/social_controller.js';
 import { checkJwt } from '../middleware/session.js';
 import { upload } from '../middleware/upload.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
 import { followUser, unfollowUser } from '../controllers/follow_controller.js';
-import { getFollowingFeedHandler } from '../controllers/social_controller.js';
-
 
 const router = express.Router();
 
-/* ───────────────────────────────── TAG GLOBAL ───────────────────────────────── */
 /**
  * @openapi
  * tags:
@@ -25,7 +27,6 @@ const router = express.Router();
  *     description: Endpoints de la red social (posts, likes, comentarios)
  */
 
-/* ───────────────────────────────── FEED PÚBLICO ─────────────────────────────── */
 /**
  * @openapi
  * /api/feed:
@@ -47,7 +48,6 @@ const router = express.Router();
  */
 router.get('/feed', generalRateLimiter, getFeedHandler);
 
-/* ───────────────────────────── POSTS DE UN USUARIO ──────────────────────────── */
 /**
  * @openapi
  * /api/users/{userId}/posts:
@@ -74,7 +74,6 @@ router.get('/feed', generalRateLimiter, getFeedHandler);
  */
 router.get('/users/:userId/posts', generalRateLimiter, getUserPostsHandler);
 
-/* ───────────────────────────────── CREAR POST ───────────────────────────────── */
 /**
  * @openapi
  * /api/posts:
@@ -117,10 +116,9 @@ router.post(
   generalRateLimiter,
   checkJwt,
   upload.single('file'),
-  createPostHandler,
+  createPostHandler
 );
 
-/* ───────────────────────────────── LIKE / UNLIKE ────────────────────────────── */
 /**
  * @openapi
  * /api/posts/{postId}/like:
@@ -143,10 +141,9 @@ router.post(
   '/posts/:postId/like',
   generalRateLimiter,
   checkJwt,
-  likePostHandler,
+  likePostHandler
 );
 
-/* ───────────────────────────────── COMENTARIOS ──────────────────────────────── */
 /**
  * @openapi
  * /api/posts/{postId}/comments:
@@ -181,7 +178,35 @@ router.post(
   '/posts/:postId/comments',
   generalRateLimiter,
   checkJwt,
-  commentPostHandler,
+  commentPostHandler
+);
+
+/**
+ * @openapi
+ * /api/posts/following:
+ *   get:
+ *     summary: Feed con publicaciones de usuarios seguidos
+ *     tags: [Social]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de publicaciones de seguidos
+ */
+router.get(
+  '/posts/following',
+  generalRateLimiter,
+  checkJwt,
+  getFollowingFeedHandler
 );
 
 /**
@@ -200,16 +225,16 @@ router.post(
  *     responses:
  *       200:
  *         description: Detalle del post
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Post'
  *       404:
  *         description: Post no encontrado
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/posts/:postId', generalRateLimiter, getPostHandler);
+router.get(
+  '/posts/:postId',
+  generalRateLimiter,
+  getPostHandler
+);
 
 /**
  * @openapi
@@ -259,27 +284,28 @@ router.post('/users/:userId/follow', checkJwt, followUser);
  */
 router.post('/users/:userId/unfollow', checkJwt, unfollowUser);
 
-/**
- * @openapi
- * /api/posts/following:
- *   get:
- *     summary: Feed con publicaciones de usuarios seguidos
- *     tags: [Social]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Lista de publicaciones de seguidos
- */
-router.get('/posts/following', checkJwt, getFollowingFeedHandler);
+/** PUT /api/posts/:postId → editar descripción */
+router.put(
+  '/posts/:postId',
+  generalRateLimiter,
+  checkJwt,
+  updatePostHandler
+);
+
+/** DELETE /api/posts/:postId → borrar post */
+router.delete(
+  '/posts/:postId',
+  generalRateLimiter,
+  checkJwt,
+  deletePostHandler
+);
+
+/** GET /api/users/:userId/profile → perfil + posts + follow? */
+router.get(
+  '/users/:userId/profile',
+  generalRateLimiter,
+  checkJwt,
+  getUserProfileHandler
+);
 
 export default router;

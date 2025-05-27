@@ -305,7 +305,6 @@ jocsNsp.on('connection', socket => {
 });
 
 
-
 // Namespace del profesor (/professor)
 const profNsp = io.of('/professor');
 
@@ -322,8 +321,8 @@ profNsp.on('connection', socket => {
     jocsNsp.to(sessionId).emit('game_started', { sessionId });
   });
 
-  socket.on('endCompetition', ({ sessionId }) => {
-    jocsNsp.to(sessionId).emit('game_ended', { sessionId });
+  socket.on('endCompetition', ({ sessionId, results }) => {
+  jocsNsp.to(sessionId).emit('game_ended', { sessionId, results });
   });
 });
 
