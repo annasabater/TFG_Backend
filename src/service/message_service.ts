@@ -11,8 +11,40 @@ export async function createDrone(droneData: IDrone) {
   return drone;
 }
 
-export async function getDrones() {
-  return await Drone.find();
+export async function getDrones(filters: any = {}) {
+  // Construir el filtro de precio
+  const priceFilter: any = {};
+  if (filters.min !== undefined) priceFilter.$gte = Number(filters.min);
+  if (filters.max !== undefined) priceFilter.$lte = Number(filters.max);
+
+  // Construir el filtro principal
+  const query: any = {};
+  if (Object.keys(priceFilter).length > 0) query.price = priceFilter;
+  if (filters.category) query.category = filters.category;
+  if (filters.condition) query.condition = filters.condition;
+  if (filters.location) query.location = { $regex: filters.location, $options: 'i' };
+  // ...puedes añadir más filtros aquí si lo necesitas...
+
+  // Obtener los drones filtrados
+  let drones = await Drone.find(query).lean();
+
+  // Calcular averageRating manualmente (por si lean() no lo incluye)
+  drones = drones.map((d: any) => {
+    if (d.ratings && d.ratings.length > 0) {
+      const ratings = d.ratings.map((r: any) => r.rating).filter((r: any) => typeof r === 'number');
+      d.averageRating = ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0;
+    } else {
+      d.averageRating = 0;
+    }
+    return d;
+  });
+
+  // Filtrar por minRating si se pasa
+  if (filters.minRating !== undefined) {
+    drones = drones.filter((d: any) => (d.averageRating || 0) >= Number(filters.minRating));
+  }
+
+  return drones;
 }
 
 export async function getDroneById(id: string) {

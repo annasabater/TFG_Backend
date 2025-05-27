@@ -1,5 +1,6 @@
 //src/models/drone_models.ts
 import mongoose from "mongoose";
+import { IRating } from "./message_models.js";
 
 const ratingSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -37,13 +38,15 @@ const droneSchema = new mongoose.Schema({
     status   : { type: String, enum: ['actiu', 'venut'], default: 'actiu' },
     ratings  : [ratingSchema]
   });
-  
 
-export interface IRating {
-    userId: string;
-    rating: number;
-    comment: string;
-}
+// Definir el virtual después de crear el schema
+
+droneSchema.virtual('averageRating').get(function (this: any) {
+  if (!this.ratings || this.ratings.length === 0) return null;
+  const ratings = this.ratings.map((r: any) => r.rating).filter((r: any) => typeof r === 'number');
+  if (ratings.length === 0) return null;
+  return ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length;
+});
 
 // Modelos
 const Drone = mongoose.model('Drone', droneSchema);
