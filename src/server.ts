@@ -33,6 +33,7 @@ dotenv.config({ path: '../.env' });
 
 const app        = express();
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
+const SERVER_URL = process.env.SERVER_URL || `http://localhost:${LOCAL_PORT}`;
 
 // Configuración de Swagger
 const path_constant = process.env.SWAGGER_PATH || './routes/*.js';
@@ -84,7 +85,7 @@ const swaggerOptions = {
           ],
         servers: [
             {
-                url: `http://localhost:${LOCAL_PORT}`
+                url: SERVER_URL
             }
         ]
     },
