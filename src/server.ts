@@ -6,6 +6,9 @@ import dotenv         from 'dotenv';
 import path           from 'path';
 import cookieParser   from 'cookie-parser';
 import { Server }     from 'socket.io';
+import session from 'express-session';
+import passport from './middleware/googleAuth.js';
+
 
 import userRoutes     from './routes/user_routes.js';
 import forumRoutes    from './routes/forum_routes.js';
@@ -28,7 +31,7 @@ import User            from './models/user_models.js';
 import { Message }     from './models/message_models.js';
 
 
-dotenv.config({ path: '../.env' });
+dotenv.config();
 
 const app        = express();
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
@@ -99,6 +102,14 @@ app.use(cookieParser());
 app.use(loggingHandler);
 app.use(corsHandler);
 
+app.use(session({
+  secret: process.env.SECRET_TOKEN || 'my-secret-token',
+  resave: false,
+  saveUninitialized: false,
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Rutas REST
 app.use('/api', userRoutes);
 app.use('/api', forumRoutes);
@@ -109,6 +120,7 @@ app.use('/api', messageRoutes);
 app.use('/api', socialRoutes);
 app.use('/api', commentRoutes);
 app.use('/uploads', express.static(UPLOAD_DIR));
+
 
 // Ruta de prueba
 app.get('/', (_req, res) => {

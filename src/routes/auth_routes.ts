@@ -1,6 +1,9 @@
 import { Router } from 'express';
-import { registerHandler, loginHandler, logoutHandler,refreshTokenHandler } from '../controllers/auth_controller.js';
+import { registerHandler, loginHandler, logoutHandler,refreshTokenHandler, googleCallbackHandler } from '../controllers/auth_controller.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
+import passport from '../middleware/googleAuth.js';
+import { generateToken, generateRefreshToken } from '../utils/jwtHandler.js';
+
 
 const router = Router();
 
@@ -187,5 +190,46 @@ router.post('/auth/logout',authRateLimiter, logoutHandler);
 router.post('/auth/refresh',authRateLimiter,refreshTokenHandler);
 
 
-router.post('/auth/refresh');
+// Iniciar login con Google
+/**
+ * @openapi
+ * /api/auth/google:
+ *   get:
+ *     summary: Iniciar sesión con Google
+ *     description: Redirige al usuario a la página de inicio de sesión de Google.
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       302:
+ *         description: Redirección a Google para autenticación.
+ */
+router.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+// Callback de Google
+/**
+ * @openapi
+ * /api/auth/google/callback:
+ *   get:
+ *     summary: Callback de Google OAuth
+ *     description: Endpoint al que Google redirige después de la autenticación.
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       200:
+ *         description: Autenticación exitosa con Google. Devuelve un token JWT.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       500:
+ *         description: Error interno del servidor.
+ */
+router.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login', session: false }),
+  googleCallbackHandler
+);
+
+
 export default router;

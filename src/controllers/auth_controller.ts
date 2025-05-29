@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { registerUser, loginUser } from '../service/auth_service.js';
 import { verifyToken } from '../utils/jwtHandler.js';
 import { getUserById } from '../service/user_service.js';
-import { generateRefreshToken } from '../utils/jwtHandler.js';
+import { generateRefreshToken, generateToken } from '../utils/jwtHandler.js';
 
 const registerHandler = async ({body}:Request, res:Response) => {
     if(!body) return res.status(400).json({message:"Please provide username and password"});
@@ -89,4 +89,36 @@ const logoutHandler = async (req:Request, res:Response) => {
     });
     return res.send({message:"Logout successful"});
 };
-export { registerHandler, loginHandler,logoutHandler, refreshTokenHandler };
+
+const googleCallbackHandler = async (req: Request, res:Response) => {
+    const user = req.user as { id: string; password?: string; [key: string]: any };
+    if (!user) {
+        return res.status(401).json({ message: "No user found in request" });
+    }
+
+    const userId = user.id;
+    const accessToken = generateToken(userId);
+    const refreshToken = generateRefreshToken(userId);
+
+    res.cookie("refreshToken", refreshToken, {
+        maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+        httpOnly: true,
+    });
+
+    res.cookie("accessToken", accessToken, {
+        maxAge: 15 * 60 * 1000, // 15 min
+        httpOnly: true,
+    });
+
+    const userObj = typeof user.toObject === "function" ? user.toObject() : user;
+    const { password, ...userWithoutPassword } = userObj;
+
+    return res.json({
+        accessToken,
+        refreshToken,
+        user: userWithoutPassword
+    });
+
+}
+
+export { registerHandler, loginHandler,logoutHandler, refreshTokenHandler, googleCallbackHandler };
