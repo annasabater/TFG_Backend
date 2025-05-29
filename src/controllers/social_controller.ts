@@ -8,7 +8,8 @@ import {
   addComment,
   getPostById,
   updatePost,
-  deletePost
+  deletePost,
+  removeComment
 } from '../service/social_service.js';
 import User from '../models/user_models.js';
 
@@ -174,6 +175,23 @@ export const getUserProfileHandler = async (req: Request, res: Response) => {
 
     res.json({ user, posts, following });
   } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const deleteCommentHandler = async (req: Request, res: Response) => {
+  try {
+    await removeComment(
+      req.params.postId,
+      req.params.commentId,
+      (req as any).user.id as string
+    );
+    res.json({ ok: true });
+  } catch (err: any) {
+    if (err.message === 'Comentari no trobat')
+      return res.status(404).json({ message: err.message });
+    if (err.message === 'No autoritzat')
+      return res.status(403).json({ message: err.message });
     res.status(500).json({ message: err.message });
   }
 };

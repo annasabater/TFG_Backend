@@ -11,7 +11,8 @@ import {
   getFollowingFeedHandler,
   updatePostHandler,
   deletePostHandler,
-  getUserProfileHandler
+  getUserProfileHandler,
+  deleteCommentHandler
 } from '../controllers/social_controller.js';
 import { checkJwt } from '../middleware/session.js';
 import { upload } from '../middleware/upload.js';
@@ -180,6 +181,8 @@ router.post(
   checkJwt,
   commentPostHandler
 );
+router.delete('/posts/:postId/comments/:commentId', checkJwt, deleteCommentHandler);
+
 
 /**
  * @openapi

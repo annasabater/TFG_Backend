@@ -156,3 +156,25 @@ export const deletePost = async (postId: string, userId: string) => {
   await post.deleteOne();
   return { message: 'Post eliminado' };
 };
+
+export const removeComment = async (
+  postId   : string,
+  commentId: string,
+  userId   : string
+) => {
+
+  if (!mongoose.isValidObjectId(commentId))
+    throw new Error('ID de comentari invàlida');
+
+  const res = await Post.updateOne(
+    {
+      _id          : postId,
+      'comments._id': commentId,
+      'comments.author': userId       
+    },
+    { $pull: { comments: { _id: commentId } } }
+  );
+
+  if (res.modifiedCount === 0)
+    throw new Error('Comentari no trobat o no autoritzat');
+};
