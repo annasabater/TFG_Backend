@@ -3,6 +3,7 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import User from '../models/user_models.js';
+import { getFollowingUsers } from '../service/user_service.js';
 
 export const followUser = async (req: Request, res: Response) => {
   try {
@@ -44,6 +45,20 @@ export const unfollowUser = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Dejaste de seguir al usuario' });
   } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const getMyFollowingHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id as string;
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 10);
+    const following = await getFollowingUsers(userId, page, limit);
+    res.json({ following });
+  } catch (err: any) {
+    if (err.message === 'Usuario no encontrado')
+      return res.status(404).json({ message: err.message });
     res.status(500).json({ message: err.message });
   }
 };

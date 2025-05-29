@@ -16,7 +16,7 @@ import {
 import { checkJwt } from '../middleware/session.js';
 import { upload } from '../middleware/upload.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
-import { followUser, unfollowUser } from '../controllers/follow_controller.js';
+import { followUser, unfollowUser, getMyFollowingHandler } from '../controllers/follow_controller.js';
 
 const router = express.Router();
 
@@ -307,5 +307,30 @@ router.get(
   checkJwt,
   getUserProfileHandler
 );
+
+/**
+ * @openapi
+ * /api/users/me/following:
+ *   get:
+ *     summary: Obtener los usuarios que sigo (autenticado)
+ *     tags: [Social]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios seguidos
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.get('/users/me/following', checkJwt, getMyFollowingHandler);
 
 export default router;
