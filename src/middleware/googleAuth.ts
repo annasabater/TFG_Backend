@@ -5,9 +5,9 @@ import User from '../models/user_models.js';
 
 
 passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID || 'my-client-id',
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'my-secret',
-    callbackURL: process.env.GOOGLE_CALLBACK_UR || 'http://localhost:9000/api/auth/google/callback',
+    clientID: process.env.GOOGLE_CLIENT_ID || '1094359522436-i3ojk2jlmmc85gvaf1ujtjjgp43tnqub.apps.googleusercontent.com',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'secret',
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:9000/api/auth/google/callback',
     },
     async (accessToken: string, _: any, profile: any, done: Function) => {
         try {
