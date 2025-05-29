@@ -26,7 +26,7 @@ import swaggerJSDoc        from 'swagger-jsdoc';
 import { verifyToken } from './utils/jwtHandler.js';
 import User            from './models/user_models.js';
 import { Message }     from './models/message_models.js';
-
+import notificationRoutes from './routes/notification_routes.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -79,6 +79,10 @@ const swaggerOptions = {
             { 
                 name: 'Auth', 
                 description: 'Registro y Login de usuarios' ,
+            },
+            {
+              name: 'Notifications',
+              description: 'Endpoints per gestionar notificacions (likes, comentaris, seguiments)'
             }
           ],
         servers: [
@@ -107,6 +111,7 @@ app.use('/api', authRoutes);
 app.use('/api', messageRoutes);
 app.use('/api', socialRoutes);
 app.use('/api', commentRoutes);
+app.use('/api', notificationRoutes);
 app.use('/uploads', express.static(UPLOAD_DIR));
 
 // Ruta de prueba

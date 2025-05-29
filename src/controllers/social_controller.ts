@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import {
   createPost,
   getFeed,
-  getPostsByUser,
+  getUserPosts,
   getFollowingFeed,
   toggleLike,
   addComment,
@@ -55,7 +55,7 @@ export const getUserPostsHandler = async (req: Request, res: Response) => {
   try {
     const page = Number(req.query.page ?? 1);
     const limit = Number(req.query.limit ?? 15);
-    res.json(await getPostsByUser(req.params.userId, page, limit));
+    res.json(await getUserPosts(req.params.userId, page, limit));
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
@@ -167,7 +167,7 @@ export const getUserProfileHandler = async (req: Request, res: Response) => {
     );
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-    const posts = await getPostsByUser(userId, 1, 50);
+    const posts = await getUserPosts(userId, 1, 50);
     const following = viewerId
       ? user.following.map(String).includes(viewerId)
       : false;
