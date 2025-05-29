@@ -6,7 +6,7 @@ import User from '../models/user_models.js';
 
 export const followUser = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).user.id;
     const targetId = req.params.userId;
 
     if (userId === targetId) {
@@ -30,7 +30,7 @@ export const followUser = async (req: Request, res: Response) => {
 
 export const unfollowUser = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).user.id;
     const targetId = req.params.userId;
     const targetObjectId = new mongoose.Types.ObjectId(targetId);
 
