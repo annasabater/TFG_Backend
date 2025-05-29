@@ -1,5 +1,10 @@
 # Prova API
 
+## Minimo 2 David Lamas
+EN mi caso me ha tocado realizar el minimo sobre hacer follow y unfollow. En el backend si no me equivoco ya habia 2 rutas follow/unfollow aunque he tenido que hacer un hotfix (ya que habia un parametro mal en un controlador/servicio) y he añadido una ruta nueva de get followers de manera paginada. En el readme del front describiré que cambios he realizado en el. 
+
+
+
 ## Descripció
 Una API per a un servei d'una app de drons, desenvolupada en Node.js amb TypeScript, utilitzant Express, Mongoose per a la gestió de dades en MongoDB, protecció de les routes amb Auth i encriptació de dades escencials amb JWT. A més, s'inclou documentació amb Swagger.
 
