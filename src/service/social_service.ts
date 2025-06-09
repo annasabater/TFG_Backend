@@ -9,7 +9,7 @@ import { pushNotification } from './notification_service.js';
 interface CreatePostDTO {
   author:      string;
   mediaUrl:    string;
-  mediaType:  'image' | 'video';
+  mediaType:   'image' | 'video';
   description?:string;
   location?:   string;
   tags?:       string[];
@@ -157,6 +157,7 @@ export const deletePost = async (postId: string, userId: string) => {
   return { message: 'Post eliminado' };
 };
 
+/* -------- Eliminar comentari -------- */
 export const removeComment = async (
   postId   : string,
   commentId: string,
@@ -168,9 +169,9 @@ export const removeComment = async (
 
   const res = await Post.updateOne(
     {
-      _id          : postId,
-      'comments._id': commentId,
-      'comments.author': userId       
+      _id               : postId,
+      'comments._id'    : commentId,
+      'comments.author' : userId       
     },
     { $pull: { comments: { _id: commentId } } }
   );

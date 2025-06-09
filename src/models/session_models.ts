@@ -1,4 +1,6 @@
+
 // src/models/session_models.ts
+
 import mongoose from 'mongoose';
 
 const participantSchema = new mongoose.Schema({
@@ -7,8 +9,8 @@ const participantSchema = new mongoose.Schema({
 });
 
 const sessionSchema = new mongoose.Schema({
-  scenario: { type: Array, required: true },      // ID o nombre
-  mode:     { type: String, required: true },      // ej: "competencia"
+  scenario: { type: Array, required: true },      
+  mode:     { type: String, required: true },      
   host:     { type: mongoose.Types.ObjectId, ref: 'User', required: true },
   participants: [participantSchema],
   state:    { type: String, enum: ['WAITING','RUNNING','ENDED'], default: 'WAITING' },
@@ -25,3 +27,4 @@ export interface ISession {
 }
 
 export const Session = mongoose.model('Session', sessionSchema);
+
