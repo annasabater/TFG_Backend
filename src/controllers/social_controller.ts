@@ -2,13 +2,14 @@ import { Request, Response } from 'express';
 import {
   createPost,
   getFeed,
-  getPostsByUser,
+  getUserPosts,
   getFollowingFeed,
   toggleLike,
   addComment,
   getPostById,
   updatePost,
-  deletePost
+  deletePost,
+  removeComment
 } from '../service/social_service.js';
 import User from '../models/user_models.js';
 
@@ -55,7 +56,7 @@ export const getUserPostsHandler = async (req: Request, res: Response) => {
   try {
     const page = Number(req.query.page ?? 1);
     const limit = Number(req.query.limit ?? 15);
-    res.json(await getPostsByUser(req.params.userId, page, limit));
+    res.json(await getUserPosts(req.params.userId, page, limit));
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
@@ -167,13 +168,30 @@ export const getUserProfileHandler = async (req: Request, res: Response) => {
     );
     if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-    const posts = await getPostsByUser(userId, 1, 50);
+    const posts = await getUserPosts(userId, 1, 50);
     const following = viewerId
       ? user.following.map(String).includes(viewerId)
       : false;
 
     res.json({ user, posts, following });
   } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const deleteCommentHandler = async (req: Request, res: Response) => {
+  try {
+    await removeComment(
+      req.params.postId,
+      req.params.commentId,
+      (req as any).user.id as string
+    );
+    res.json({ ok: true });
+  } catch (err: any) {
+    if (err.message === 'Comentari no trobat')
+      return res.status(404).json({ message: err.message });
+    if (err.message === 'No autoritzat')
+      return res.status(403).json({ message: err.message });
     res.status(500).json({ message: err.message });
   }
 };
