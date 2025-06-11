@@ -35,6 +35,18 @@ export const updateUser = async (id: string, updateData: Partial<IUser>) => {
 export const deleteUser = async (id: string) => {
     return await User.updateOne({ _id: id }, { isDeleted: true });
 };
+
+export const getFollowingUsers = async (userId: string, page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
+  const user = await User.findById(userId)
+    .populate({
+      path: 'following',
+      select: 'userName email',
+      options: { skip, limit }
+    });
+  if (!user) throw new Error('Usuario no encontrado');
+  return user.following;
+};
 /*
 export const logIn = async (email: string, password: string) => { 
     try {
