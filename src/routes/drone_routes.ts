@@ -232,9 +232,57 @@ router.post(
  *         name: id
  *         required: true
  *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               model:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               details:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [venta, alquiler]
+ *               condition:
+ *                 type: string
+ *                 enum: [nuevo, usado]
+ *               location:
+ *                 type: string
+ *               contact:
+ *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 minItems: 1
+ *                 maxItems: 4
+ *               status:
+ *                 type: string
+ *                 enum: [actiu, venut]
+ *           encoding:
+ *             images:
+ *               style: form
+ *               explode: false
+ *           example:
+ *             model: "DJI Mini 3"
+ *             price: 500
+ *             details: "Dron en perfecto estado, poco uso."
+ *             category: "venta"
+ *             condition: "usado"
+ *             location: "Barcelona"
+ *             contact: "email@ejemplo.com"
+ *             status: "actiu"
  *     responses:
- *       200: { description: Dron actualizado correctamente }
- *       404: { description: Dron no encontrado }
+ *       200:
+ *         description: Dron actualizado correctamente
+ *       404:
+ *         description: Dron no encontrado
  */
 router.put(
   '/drones/:id',
