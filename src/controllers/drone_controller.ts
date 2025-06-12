@@ -188,11 +188,21 @@ export const updateDroneHandler = async (req: Request, res: Response) => {
         // Manejar imágenes subidas
         let images: string[] = [];
         if ((req as any).files && Array.isArray((req as any).files)) {
-          images = (req as any).files.map((file: any) => '/uploads/' + file.filename);
+          // Usar ruta absoluta igual que en createDroneHandler
+          images = (req as any).files.map((file: any) => 'http://localhost:9000/uploads/' + file.filename);
         }
         const updateData = { ...req.body };
         if (images.length > 0) {
           updateData.images = images;
+        }
+
+        // Parsear ratings si viene como string
+        if (typeof updateData.ratings === 'string') {
+          try {
+            updateData.ratings = JSON.parse(updateData.ratings);
+          } catch {
+            updateData.ratings = [];
+          }
         }
 
         const updatedDrone = await updateDrone(drone._id.toString(), updateData);
