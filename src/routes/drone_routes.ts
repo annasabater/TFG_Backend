@@ -15,6 +15,7 @@ import {
   getFavoritesHandler,
   getMyDronesHandler,
   purchaseDroneHandler,
+  getDroneConvertedPriceHandler,
 } from '../controllers/drone_controller.js';
 import { uploadImages, validateMinImages } from '../middleware/upload.js';
 
@@ -33,9 +34,26 @@ const router = Router();
  * @openapi
  * /api/drones:
  *   get:
- *     summary: Obtener todos los drones (filtros y paginación)
+ *     summary: Obtener todos los drones (conversión de divisa incluida)
  *     tags: [Drones]
  *     parameters:
+ *       - in: query
+ *         name: currency
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [EUR, USD, GBP, JPY, CHF, CAD, AUD, CNY, HKD, NZD]
+ *         description: Divisa solicitada para el precio
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Página de resultados
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Límite de resultados por página
  *       - in: query
  *         name: minPrice
  *         schema: { type: number }
@@ -74,7 +92,26 @@ const router = Router();
  *         description: Elementos por página (máx. 20)
  *     responses:
  *       200:
- *         description: Lista filtrada de drones
+ *         description: Lista de drones con precio convertido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   model:
+ *                     type: string
+ *                   price:
+ *                     type: number
+ *                   currency:
+ *                     type: string
+ *                   averageRating:
+ *                     type: number
+ *       400:
+ *         description: currency es requerido o no soportado
  *
  *   post:
  *     summary: Crear un nuevo dron
@@ -584,5 +621,52 @@ router.put(
   purchaseDroneHandler
 );
 
+router.get('/drones/:id/converted-price', getDroneConvertedPriceHandler);
+
+/**
+ * @openapi
+ * /api/drones/{id}/converted-price:
+ *   get:
+ *     summary: Obtener el dron con el precio convertido a la divisa solicitada
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del dron
+ *       - in: query
+ *         name: currency
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [EUR, USD, GBP, JPY, CHF, CAD, AUD, CNY, HKD, NZD]
+ *         description: Divisa solicitada para el precio
+ *     responses:
+ *       200:
+ *         description: Dron con precio convertido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 model:
+ *                   type: string
+ *                 price:
+ *                   type: number
+ *                 currency:
+ *                   type: string
+ *                 originalPrice:
+ *                   type: number
+ *                 originalCurrency:
+ *                   type: string
+ *       400:
+ *         description: Error de parámetros o divisa no soportada
+ *       404:
+ *         description: Dron no encontrado
+ */
 
 export default router;

@@ -328,7 +328,7 @@ router.get('/orders/:userId', generalRateLimiter, getUserOrdersHandler);
  */
 
 /**
- * @swagger
+ * @openapi
  * /api/payments:
  *   post:
  *     summary: Registrar un pago
@@ -338,17 +338,38 @@ router.get('/orders/:userId', generalRateLimiter, getUserOrdersHandler);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/PaymentInput'
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               orderId:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *               paymentMethod:
+ *                 type: string
+ *             required:
+ *               - userId
+ *               - orderId
+ *               - amount
  *     responses:
  *       201:
  *         description: Pago registrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 payment:
+ *                   type: object
  *       500:
  *         description: Error al procesar pago
  */
-router.post('/payments', generalRateLimiter, processPaymentHandler);
 
 /**
- * @swagger
+ * @openapi
  * /api/payments/{userId}:
  *   get:
  *     summary: Obtener pagos de un usuario
@@ -363,9 +384,31 @@ router.post('/payments', generalRateLimiter, processPaymentHandler);
  *     responses:
  *       200:
  *         description: Lista de pagos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   userId:
+ *                     type: string
+ *                   orderId:
+ *                     type: string
+ *                   amount:
+ *                     type: number
+ *                   paymentMethod:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
  *       500:
  *         description: Error al obtener pagos
  */
+
+router.post('/payments', generalRateLimiter, processPaymentHandler);
 router.get('/payments/:userId', generalRateLimiter, getUserPaymentsHandler);
 
 export default router;

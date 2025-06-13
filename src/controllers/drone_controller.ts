@@ -14,7 +14,9 @@ import {
     addReviewToDrone,
     addFavorite,
     removeFavorite,
-    getFavorites
+    getFavorites,
+    purchaseDroneWithBalance,
+    getDroneWithConvertedPrice
   } from '../service/drone_service.js';
 import { getCommentsByDrone } from '../service/comment_service.js';
 import exp from 'constants';
@@ -87,7 +89,33 @@ export const getDronesHandler = async (req: Request, res: Response) => {
     drones = drones.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     // Incluir averageRating en la respuesta
     const result = drones.map((d: any) => ({ ...d.toObject(), averageRating: d.averageRating }));
-    res.status(200).json(result);
+    // --- NUEVO: conversión de divisa ---
+    const allowedCurrencies = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'NZD'];
+    const targetCurrency = req.query.currency as string;
+    if (!targetCurrency || !allowedCurrencies.includes(targetCurrency)) {
+      return res.status(400).json({ message: 'currency es requerido y debe ser una de: ' + allowedCurrencies.join(', ') });
+    }
+    // Convertir precios
+    const convertedResult = await Promise.all(
+      result.map(async (d: any) => {
+        let price = d.price;
+        let currency = d.currency;
+        if (d.currency !== targetCurrency) {
+          const { getExchangeRate } = await import('../utils/exchangeRates.js');
+          const rate = await getExchangeRate(d.currency, targetCurrency);
+          price = Math.round(d.price * rate * 100) / 100;
+          currency = targetCurrency;
+        }
+        return {
+          _id: d._id,
+          model: d.model,
+          price,
+          currency,
+          averageRating: d.averageRating
+        };
+      })
+    );
+    res.status(200).json(convertedResult);
   } catch (e: any) {
     res.status(500).json({ message: e.message });
   }
@@ -337,15 +365,29 @@ export const getMyDronesHandler = async (req: Request, res: Response) => {
     }
   };
 
-  import { markDroneSold } from '../service/drone_service.js';
-
 export const purchaseDroneHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const updated = await markDroneSold(id);
-    res.status(200).json(updated);
+    const { userId, preferredCurrency } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: 'userId es requerido' });
+    }
+    const result = await purchaseDroneWithBalance(id, userId, preferredCurrency);
+    res.status(200).json(result);
   } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const getDroneConvertedPriceHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { currency } = req.query;
+    if (!currency) return res.status(400).json({ message: 'currency es requerido' });
+    const drone = await getDroneWithConvertedPrice(id, currency as string);
+    res.status(200).json(drone);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
   }
 };
 

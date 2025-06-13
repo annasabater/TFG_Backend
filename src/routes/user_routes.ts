@@ -8,7 +8,9 @@ import {
     getAllUsersHandler,
     getUserByIdHandler,
     updateUserHandler,
-    deleteUserHandler
+    deleteUserHandler,
+    getUserBalanceHandler,
+    addUserBalanceHandler
 } from '../controllers/user_controller.js';
 import { checkJwt, verifyRole } from '../middleware/session.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
@@ -192,5 +194,58 @@ router.put('/users/:id',generalRateLimiter,checkJwt, updateUserHandler);
  *         description: Usuario no encontrado
  */
 router.delete('/users/:id',generalRateLimiter,checkJwt, deleteUserHandler);
+
+/**
+ * @openapi
+ * /api/users/{id}/balance:
+ *   get:
+ *     summary: Obtiene el saldo de un usuario por ID
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Éxito
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.get('/users/:id/balance', getUserBalanceHandler);
+
+/**
+ * @openapi
+ * /api/users/{id}/balance:
+ *   post:
+ *     summary: Añade saldo multidivisa a un usuario por ID
+ *     tags:
+ *       - Users
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               currency:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Saldo añadido exitosamente
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.post('/users/:id/balance', addUserBalanceHandler);
 
 export default router;

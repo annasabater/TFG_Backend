@@ -1,5 +1,5 @@
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, updateUser, deleteUser } from '../service/user_service.js';
+import { saveMethod, createUser, updateUser, deleteUser, getUserBalance, addUserBalance } from '../service/user_service.js';
 import { JwtPayload } from 'jsonwebtoken';
 import express, { Request, Response } from 'express';
 import { verifyRole } from '../middleware/session.js';
@@ -86,6 +86,30 @@ export const deleteUserHandler = async (req: RequestExt, res: Response) => {
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
+};
+
+export const getUserBalanceHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const balance = await getUserBalance(id);
+    res.status(200).json(balance);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const addUserBalanceHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { amount, currency } = req.body;
+    if (!amount || !currency) {
+      return res.status(400).json({ message: 'amount y currency son requeridos' });
+    }
+    const balance = await addUserBalance(id, amount, currency);
+    res.status(200).json(balance);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 /*

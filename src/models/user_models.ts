@@ -10,6 +10,12 @@ const userSchema = new mongoose.Schema({
 
   favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drone', default: [] }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] }], 
+
+  balance: {
+    type: Map,
+    of: Number,
+    default: undefined // Usar undefined para evitar problemas con {}
+  },
 });
 
   
@@ -30,6 +36,7 @@ export interface IUser {
   role: 'Administrador' | 'Usuario' | 'Empresa' | 'Gobierno';
   favorites?: mongoose.Types.ObjectId[];
   following?: mongoose.Types.ObjectId[]; 
+  balance?: Map<string, number>;
 }
 
 

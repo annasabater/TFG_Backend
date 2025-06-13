@@ -1,6 +1,7 @@
 import Drone, { IDrone } from '../models/drone_models.js';
 import User               from '../models/user_models.js';
 import mongoose           from 'mongoose';
+import { getExchangeRate } from '../utils/exchangeRates.js';
 
 /* ---------- Helpers ---------- */
 const validateUserNotDeleted = async (userId: string) => {
@@ -123,4 +124,71 @@ export const markDroneSold = async (droneId: string) =>
     if (status === 'sold')    query.status = 'venut';
     return await Drone.find(query).sort({ createdAt: -1 });
   };
-  
+
+export const purchaseDroneWithBalance = async (droneId: string, userId: string, preferredCurrency?: string) => {
+  const drone = await Drone.findById(droneId);
+  if (!drone) throw new Error('Dron no encontrado');
+  if (drone.status === 'venut') throw new Error('Dron ya vendido');
+  const user = await User.findById(userId);
+  if (!user) throw new Error('Usuario no encontrado');
+  if (!user.balance) user.balance = new Map();
+
+  // Verificar saldo suficiente en la moneda del dron
+  let userCurrency: 'EUR' | 'USD' | 'GBP' = drone.currency;
+  let userBalance = user.balance.get(drone.currency) || 0;
+  let price = drone.price;
+
+  // Si el usuario prefiere otra moneda, intentar conversión
+  if (preferredCurrency && preferredCurrency !== drone.currency) {
+    if (!['EUR', 'USD', 'GBP'].includes(preferredCurrency)) throw new Error('Divisa no soportada');
+    userCurrency = preferredCurrency as 'EUR' | 'USD' | 'GBP';
+    userBalance = user.balance.get(preferredCurrency) || 0;
+    const rate = await getExchangeRate(preferredCurrency, drone.currency);
+    price = drone.price / rate;
+  }
+
+  // Si no hay suficiente saldo, intentar con otras monedas
+  if (userBalance < price) {
+    let found = false;
+    for (const [currency, balance] of user.balance.entries()) {
+      const rate = await getExchangeRate(currency, drone.currency);
+      const converted = balance * rate;
+      if (converted >= drone.price) {
+        userCurrency = currency as 'EUR' | 'USD' | 'GBP';
+        userBalance = balance;
+        price = drone.price / rate;
+        found = true;
+        break;
+      }
+    }
+    if (!found) throw new Error('Saldo insuficiente en todas las divisas');
+  }
+
+  // Descontar saldo
+  user.balance.set(userCurrency, userBalance - price);
+  await user.save();
+  drone.status = 'venut';
+  await drone.save();
+  return { drone, user: { ...user.toObject(), balance: Object.fromEntries(user.balance) } };
+};
+
+// Devuelve el dron con el precio convertido a la divisa solicitada
+export const getDroneWithConvertedPrice = async (droneId: string, targetCurrency: string) => {
+  const allowedCurrencies = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'NZD'];
+  const drone = await Drone.findById(droneId);
+  if (!drone) throw new Error('Dron no encontrado');
+  if (!allowedCurrencies.includes(targetCurrency)) throw new Error('Divisa no soportada');
+  let convertedPrice = drone.price;
+  if (drone.currency !== targetCurrency) {
+    const rate = await getExchangeRate(drone.currency, targetCurrency);
+    convertedPrice = Math.round(drone.price * rate * 100) / 100;
+  }
+  return {
+    ...drone.toObject(),
+    price: convertedPrice,
+    currency: targetCurrency,
+    originalPrice: drone.price,
+    originalCurrency: drone.currency
+  };
+};
+
