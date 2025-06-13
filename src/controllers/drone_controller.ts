@@ -97,7 +97,7 @@ export const getDronesHandler = async (req: Request, res: Response) => {
     }
     // Convertir precios
     const convertedResult = await Promise.all(
-      result.map(async (d: any) => {
+      drones.map(async (d: any) => {
         let price = d.price;
         let currency = d.currency;
         if (d.currency !== targetCurrency) {
@@ -108,10 +108,18 @@ export const getDronesHandler = async (req: Request, res: Response) => {
         }
         return {
           _id: d._id,
+          ownerId: d.ownerId,
           model: d.model,
           price,
           currency,
-          averageRating: d.averageRating
+          averageRating: d.averageRating,
+          images: d.images,
+          category: d.category,
+          condition: d.condition,
+          location: d.location,
+          status: d.status,
+          buyerId: d.buyerId ?? null,
+          createdAt: d.createdAt
         };
       })
     );
@@ -368,11 +376,11 @@ export const getMyDronesHandler = async (req: Request, res: Response) => {
 export const purchaseDroneHandler = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { userId, preferredCurrency } = req.body;
-    if (!userId) {
-      return res.status(400).json({ message: 'userId es requerido' });
+    const { userId, payWithCurrency } = req.body;
+    if (!userId || !payWithCurrency) {
+      return res.status(400).json({ message: 'userId y payWithCurrency son requeridos' });
     }
-    const result = await purchaseDroneWithBalance(id, userId, preferredCurrency);
+    const result = await purchaseDroneWithBalance(id, userId, payWithCurrency);
     res.status(200).json(result);
   } catch (err: any) {
     res.status(400).json({ message: err.message });

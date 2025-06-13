@@ -21,7 +21,8 @@ export interface IDrone {
     status?: 'actiu' | 'venut';        
     createdAt?: Date;
     ratings?: IRating[];
-    currency: 'EUR' | 'USD' | 'GBP';
+    currency: 'EUR' | 'USD' | 'GBP' | 'JPY' | 'CHF' | 'CAD' | 'AUD' | 'CNY' | 'HKD' | 'NZD';
+    buyerId?: string;
   }
   
 
@@ -38,7 +39,8 @@ const droneSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     status   : { type: String, enum: ['actiu', 'venut'], default: 'actiu' },
     ratings  : [ratingSchema],
-    currency : { type: String, enum: ['EUR', 'USD', 'GBP'], required: true, default: 'EUR' }
+    currency : { type: String, enum: ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'NZD'], required: true, default: 'EUR' },
+    buyerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   });
 
 // Definir el virtual después de crear el schema

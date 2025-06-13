@@ -125,7 +125,7 @@ export const markDroneSold = async (droneId: string) =>
     return await Drone.find(query).sort({ createdAt: -1 });
   };
 
-export const purchaseDroneWithBalance = async (droneId: string, userId: string, preferredCurrency?: string) => {
+export const purchaseDroneWithBalance = async (droneId: string, userId: string, payWithCurrency?: string) => {
   const drone = await Drone.findById(droneId);
   if (!drone) throw new Error('Dron no encontrado');
   if (drone.status === 'venut') throw new Error('Dron ya vendido');
@@ -133,41 +133,24 @@ export const purchaseDroneWithBalance = async (droneId: string, userId: string, 
   if (!user) throw new Error('Usuario no encontrado');
   if (!user.balance) user.balance = new Map();
 
-  // Verificar saldo suficiente en la moneda del dron
-  let userCurrency: 'EUR' | 'USD' | 'GBP' = drone.currency;
-  let userBalance = user.balance.get(drone.currency) || 0;
+  // Solo permitir pagar en la divisa indicada
+  if (!payWithCurrency) throw new Error('Debes indicar la divisa con la que quieres pagar (payWithCurrency)');
+  if (!user.balance.has(payWithCurrency)) throw new Error('No tienes saldo en la divisa seleccionada');
+
+  // Calcular el precio en la divisa seleccionada
   let price = drone.price;
-
-  // Si el usuario prefiere otra moneda, intentar conversión
-  if (preferredCurrency && preferredCurrency !== drone.currency) {
-    if (!['EUR', 'USD', 'GBP'].includes(preferredCurrency)) throw new Error('Divisa no soportada');
-    userCurrency = preferredCurrency as 'EUR' | 'USD' | 'GBP';
-    userBalance = user.balance.get(preferredCurrency) || 0;
-    const rate = await getExchangeRate(preferredCurrency, drone.currency);
-    price = drone.price / rate;
+  if (drone.currency !== payWithCurrency) {
+    const rate = await getExchangeRate(drone.currency, payWithCurrency);
+    price = Math.round((drone.price / rate) * 100) / 100;
   }
-
-  // Si no hay suficiente saldo, intentar con otras monedas
-  if (userBalance < price) {
-    let found = false;
-    for (const [currency, balance] of user.balance.entries()) {
-      const rate = await getExchangeRate(currency, drone.currency);
-      const converted = balance * rate;
-      if (converted >= drone.price) {
-        userCurrency = currency as 'EUR' | 'USD' | 'GBP';
-        userBalance = balance;
-        price = drone.price / rate;
-        found = true;
-        break;
-      }
-    }
-    if (!found) throw new Error('Saldo insuficiente en todas las divisas');
-  }
+  const userBalance = user.balance.get(payWithCurrency) || 0;
+  if (userBalance < price) throw new Error('Saldo insuficiente en la divisa seleccionada');
 
   // Descontar saldo
-  user.balance.set(userCurrency, userBalance - price);
+  user.balance.set(payWithCurrency, userBalance - price);
   await user.save();
   drone.status = 'venut';
+  drone.buyerId = new mongoose.Types.ObjectId(userId);
   await drone.save();
   return { drone, user: { ...user.toObject(), balance: Object.fromEntries(user.balance) } };
 };
