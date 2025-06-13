@@ -196,7 +196,7 @@ export const purchaseMultipleDrones = async (
   for (const item of items) {
     const drone = await Drone.findById(item.droneId);
     if (!drone) throw new Error(`Dron ${item.droneId} no encontrado`);
-    if (drone.ownerId.toString() === userId) throw new Error('No puedes comprar tu propio dron');
+    if (drone.ownerId.toString() === userId.toString()) throw new Error('No puedes comprar tu propio dron');
     if (drone.status === 'venut') throw new Error(`Dron ${drone.model} ya vendido`);
     if (typeof drone.stock !== 'number' || drone.stock < item.quantity) throw new Error(`Stock insuficiente para el dron ${drone.model}`);
     // Calcular precio en la divisa seleccionada
