@@ -15,6 +15,7 @@ import {
   getFavoritesHandler,
   getMyDronesHandler,
   purchaseDroneHandler,
+  purchaseMultipleDronesHandler, // <--- añadido
   getDroneConvertedPriceHandler,
 } from '../controllers/drone_controller.js';
 import { uploadImages, validateMinImages } from '../middleware/upload.js';
@@ -572,6 +573,47 @@ router.post(
   generalRateLimiter,
   checkJwt,
   purchaseDroneHandler
+);
+
+/**
+ * @openapi
+ * /api/drones/purchase-multiple:
+ *   post:
+ *     summary: Comprar múltiples drones
+ *     tags: [Drones]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               droneIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               payWithCurrency:
+ *                 type: string
+ *                 enum: [EUR, USD, GBP, JPY, CHF, CAD, AUD, CNY, HKD, NZD]
+ *             required:
+ *               - userId
+ *               - droneIds
+ *               - payWithCurrency
+ *     responses:
+ *       200:
+ *         description: Compra múltiple realizada correctamente
+ *       400:
+ *         description: Saldo insuficiente en la divisa seleccionada o error de parámetros
+ *       404:
+ *         description: Uno o más drones no encontrados
+ */
+router.post(
+  '/drones/purchase-multiple',
+  generalRateLimiter,
+  checkJwt,
+  purchaseMultipleDronesHandler
 );
 
 /**

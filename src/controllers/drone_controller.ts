@@ -16,7 +16,8 @@ import {
     removeFavorite,
     getFavorites,
     purchaseDroneWithBalance,
-    getDroneWithConvertedPrice
+    getDroneWithConvertedPrice,
+    purchaseMultipleDrones // <--- añadido
   } from '../service/drone_service.js';
 import { getCommentsByDrone } from '../service/comment_service.js';
 import exp from 'constants';
@@ -33,6 +34,14 @@ export const createDroneHandler = async (req: Request, res: Response) => {
       isService,
       ...droneData
     } = req.body;
+
+    // Validar y forzar stock
+    let stock = 1;
+    if (typeof droneData.stock !== 'undefined') {
+      stock = parseInt(droneData.stock);
+      if (isNaN(stock) || stock < 0) stock = 1;
+    }
+    droneData.stock = stock;
 
     // Manejar imágenes subidas
     let images: string[] = [];
@@ -118,14 +127,13 @@ export const getDronesHandler = async (req: Request, res: Response) => {
           condition: d.condition,
           location: d.location,
           status: d.status,
-          buyerId: d.buyerId ?? null,
-          createdAt: d.createdAt
+          stock: d.stock // <--- añadido
         };
       })
     );
     res.status(200).json(convertedResult);
-  } catch (e: any) {
-    res.status(500).json({ message: e.message });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || 'Error al obtener los drones' });
   }
 };
   
@@ -224,12 +232,18 @@ export const updateDroneHandler = async (req: Request, res: Response) => {
         // Manejar imágenes subidas
         let images: string[] = [];
         if ((req as any).files && Array.isArray((req as any).files)) {
-          // Usar ruta absoluta igual que en createDroneHandler
           images = (req as any).files.map((file: any) => 'http://localhost:9000/uploads/' + file.filename);
         }
         const updateData = { ...req.body };
         if (images.length > 0) {
           updateData.images = images;
+        }
+
+        // Validar y forzar stock
+        if (typeof updateData.stock !== 'undefined') {
+          let stock = parseInt(updateData.stock);
+          if (isNaN(stock) || stock < 0) stock = 1;
+          updateData.stock = stock;
         }
 
         // Parsear ratings si viene como string
@@ -381,6 +395,19 @@ export const purchaseDroneHandler = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'userId y payWithCurrency son requeridos' });
     }
     const result = await purchaseDroneWithBalance(id, userId, payWithCurrency);
+    res.status(200).json(result);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const purchaseMultipleDronesHandler = async (req: Request, res: Response) => {
+  try {
+    const { userId, items, payWithCurrency } = req.body;
+    if (!userId || !Array.isArray(items) || !payWithCurrency) {
+      return res.status(400).json({ message: 'userId, items y payWithCurrency son requeridos' });
+    }
+    const result = await purchaseMultipleDrones(userId, items, payWithCurrency);
     res.status(200).json(result);
   } catch (err: any) {
     res.status(400).json({ message: err.message });

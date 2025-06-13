@@ -175,3 +175,53 @@ export const getDroneWithConvertedPrice = async (droneId: string, targetCurrency
   };
 };
 
+export interface DronePurchaseItem {
+  droneId: string;
+  quantity: number;
+}
+
+export const purchaseMultipleDrones = async (
+  userId: string,
+  items: DronePurchaseItem[],
+  payWithCurrency: string
+) => {
+  const user = await User.findById(userId);
+  if (!user) throw new Error('Usuario no encontrado');
+  if (!user.balance) user.balance = new Map();
+  if (!payWithCurrency) throw new Error('Debes indicar la divisa con la que quieres pagar (payWithCurrency)');
+  if (!user.balance.has(payWithCurrency)) throw new Error('No tienes saldo en la divisa seleccionada');
+
+  let total = 0;
+  const dronesToUpdate: any[] = [];
+  for (const item of items) {
+    const drone = await Drone.findById(item.droneId);
+    if (!drone) throw new Error(`Dron ${item.droneId} no encontrado`);
+    if (drone.ownerId.toString() === userId) throw new Error('No puedes comprar tu propio dron');
+    if (drone.status === 'venut') throw new Error(`Dron ${drone.model} ya vendido`);
+    if (typeof drone.stock !== 'number' || drone.stock < item.quantity) throw new Error(`Stock insuficiente para el dron ${drone.model}`);
+    // Calcular precio en la divisa seleccionada
+    let price = drone.price;
+    if (drone.currency !== payWithCurrency) {
+      const rate = await getExchangeRate(drone.currency, payWithCurrency);
+      price = Math.round((drone.price / rate) * 100) / 100;
+    }
+    total += price * item.quantity;
+    dronesToUpdate.push({ drone, quantity: item.quantity });
+  }
+  const userBalance = user.balance.get(payWithCurrency) || 0;
+  if (userBalance < total) throw new Error('Saldo insuficiente en la divisa seleccionada');
+  // Descontar saldo
+  user.balance.set(payWithCurrency, userBalance - total);
+  await user.save();
+  // Actualizar stock y marcar vendidos si corresponde
+  for (const { drone, quantity } of dronesToUpdate) {
+    drone.stock -= quantity;
+    if (drone.stock === 0) {
+      drone.status = 'venut';
+      drone.buyerId = new mongoose.Types.ObjectId(userId);
+    }
+    await drone.save();
+  }
+  return { success: true, total, currency: payWithCurrency, user: { ...user.toObject(), balance: Object.fromEntries(user.balance) } };
+};
+
