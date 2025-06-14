@@ -45,13 +45,17 @@ export const createDrone = async (droneData: IDrone) => {
 
 // Llistar drons amb paginació i filtres
 export const getDrones = async (
-  page = 1,
-  limit = 10,
+  page?: number,
+  limit?: number,
   filters: Record<string, any> = {}
 ) => {
-  const skip = (page - 1) * limit;
   const query = buildQuery(filters);
-  return await Drone.find(query).skip(skip).limit(limit);
+  let cursor = Drone.find(query);
+  if (typeof page === 'number' && typeof limit === 'number') {
+    const skip = (page - 1) * limit;
+    cursor = cursor.skip(skip).limit(limit);
+  }
+  return await cursor;
 };
 
 // Dron per ID

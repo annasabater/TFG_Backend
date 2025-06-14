@@ -76,15 +76,16 @@ export const getDronesHandler = async (req: Request, res: Response) => {
       category: req.query.category,
       condition: req.query.condition,
       location: req.query.location,
-      priceMin: req.query.minPrice ? Number(req.query.minPrice) : undefined,
-      priceMax: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
       name: req.query.name,
       model: req.query.model
     };
     // El filtro minRating se aplica después de la consulta
     const minRating = req.query.minRating ? Number(req.query.minRating) : undefined;
+    const minPrice = req.query.minPrice ? Number(req.query.minPrice) : undefined;
+    const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : undefined;
 
-    let drones = await getDrones(page, limit, filters);
+    // Traer los drones solo con los filtros que no dependen del precio
+    let drones = await getDrones(undefined, undefined, filters); // No paginar aquí
     // Filtrar por name y model (búsqueda parcial, case-insensitive)
     if (filters.name) {
       drones = drones.filter((d: any) => d.model && d.model.toLowerCase().includes(filters.name.toLowerCase()));
@@ -109,23 +110,15 @@ export const getDronesHandler = async (req: Request, res: Response) => {
       })
     );
 
-    // Filtrar por minRating usando el nuevo averageRating
-    let filteredDrones = dronesWithRatings;
-    if (minRating) {
-      filteredDrones = filteredDrones.filter((d: any) => (d.averageRating || 0) >= minRating);
-    }
-    // Ordenar por fecha de creación descendente
-    filteredDrones = filteredDrones.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    // --- NUEVO: conversión de divisa ---
+    // --- NUEVO: conversión de divisa antes de filtrar por precio ---
     const allowedCurrencies = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'NZD'];
     const targetCurrency = req.query.currency as string;
     if (!targetCurrency || !allowedCurrencies.includes(targetCurrency)) {
       return res.status(400).json({ message: 'currency es requerido y debe ser una de: ' + allowedCurrencies.join(', ') });
     }
     // Convertir precios
-    const convertedResult = await Promise.all(
-      filteredDrones.map(async (d: any) => {
+    const convertedDrones = await Promise.all(
+      dronesWithRatings.map(async (d: any) => {
         let price = d.price;
         let currency = d.currency;
         if (d.currency !== targetCurrency) {
@@ -135,22 +128,35 @@ export const getDronesHandler = async (req: Request, res: Response) => {
           currency = targetCurrency;
         }
         return {
-          _id: d._id,
-          ownerId: d.ownerId,
-          model: d.model,
+          ...d,
           price,
-          currency,
-          averageRating: d.averageRating,
-          images: d.images,
-          category: d.category,
-          condition: d.condition,
-          location: d.location,
-          status: d.status,
-          stock: d.stock // <--- añadido
+          currency
         };
       })
     );
-    res.status(200).json(convertedResult);
+
+    // Filtrar por minPrice y maxPrice usando el precio convertido
+    let filteredDrones = convertedDrones;
+    if (minPrice !== undefined) {
+      filteredDrones = filteredDrones.filter((d: any) => Number(d.price) >= minPrice);
+    }
+    if (maxPrice !== undefined) {
+      filteredDrones = filteredDrones.filter((d: any) => Number(d.price) <= maxPrice);
+    }
+
+    // Filtrar por minRating usando el nuevo averageRating
+    if (minRating) {
+      filteredDrones = filteredDrones.filter((d: any) => (d.averageRating || 0) >= minRating);
+    }
+    // Ordenar por fecha de creación descendente
+    filteredDrones = filteredDrones.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Aplicar paginación después de todos los filtros
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginatedDrones = filteredDrones.slice(start, end);
+
+    res.status(200).json(paginatedDrones);
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Error al obtener los drones' });
   }
