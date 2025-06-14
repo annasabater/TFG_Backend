@@ -49,7 +49,7 @@ export const startGameOnEngine = async (session: Session): Promise<void> => {
 		participants,
 	});
 };
-
+console.log('si');
 /**
  * Envía un comando arbitrario al motor.
  */
