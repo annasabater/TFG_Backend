@@ -37,6 +37,7 @@ interface DroneDoc {
 }
 
 interface DroneFilters {
+	[key: string]: unknown;
 	q?: string;
 	category?: string;
 	condition?: string;
@@ -96,6 +97,7 @@ const createDroneHandler = async (req: Request, res: Response) => {
 			location,
 			images,
 			condition: req.body.condition, // Add the required 'condition' property
+			currency: req.body.currency ?? 'EUR', // Add the required 'currency' property, default to 'EUR'
 			...rest,
 		};
 
