@@ -28,3 +28,16 @@ jobs:
       - name: Build Docker image
         run: docker build -t backend-app .
 
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          # where your code lives
+          projectBaseDir: .
+          # pass all -D properties here
+          args: >
+            -Dsonar.organization=joaquinaroca
+            -Dsonar.projectKey=JoaquinARoca_Skynet-Backend
+            -Dsonar.sources=src
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
