@@ -35,50 +35,8 @@ Crea un fitxer `.env` a la arrel del projecte i defineix les següents variables
 ```env
 MONGO_URI=mongodb://localhost:27017/la_teva_base_de_dades
 PORT=9000
+JWT_SECRET=el-teu-secret
 ```
-
-## Configuració d'OAuth 2.0 amb Google
-
-Crear les credencials d'OAuth 2.0
-
-1.- Accedeix a la Google Cloud Console.
-
-2.- Selecciona o crea un nou projecte.
-
-3.- A la barra lateral, ves a APIs & Services > Credentials.
-
-4.- Fes clic a Create Credentials i selecciona OAuth 2.0 Client ID.
-
-5.- Si encara no has configurat una pantalla de consentiment d'OAuth, hauràs de fer-ho:
-
-    --> Omple els camps requerits, com el nom de l'aplicació i el correu electrònic de suport.
-
-6.- Afegeix els dominis autoritzats si és necessari.
-
-7.- Desa la configuració.
-
-8.- Selecciona Application type com Web application ( ja que ho fem amb angular) .
-
-9.- Defineix un nom per a les credencials.
-
-10.- Afegeix l'URL de redirecció a la secció Authorized redirect URIs:
-```
-http://localhost:9000/api/auth/google/callback per a desenvolupament local.
-```
-11.- Desa la configuració i copia el Client ID i el Client Secret.
-
-12.- Configuració de les variables d'entorn
-
-13.- Al servidor backend, afegeix les variables d'entorn necessàries en un fitxer .env:
-```
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-GOOGLE_OAUTH_REDIRECT_URL=http://localhost:9000/api/auth/google/callback
-SECRET_TOKEN=your-Secret-Token
-```
-14.- Assegurar que aquestes variables estiguin carregades abans d'iniciar el servidor, utilitzar per defecte npm start per fer RUN en el projecte (ruta per defecte per agafar les variables d'entorn integrada).
-
-
 
 ## Execució
 Per iniciar l'API (tsc + cd ./build + node server.js):
