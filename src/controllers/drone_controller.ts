@@ -92,14 +92,31 @@ export const getDronesHandler = async (req: Request, res: Response) => {
     if (filters.model) {
       drones = drones.filter((d: any) => d.model && d.model.toLowerCase().includes(filters.model.toLowerCase()));
     }
-    // Filtrar por minRating usando el virtual
+
+    // Calcular averageRating de comentarios raíz para cada dron
+    const dronesWithRatings = await Promise.all(
+      drones.map(async (d: any) => {
+        const comments = await getCommentsByDrone(d._id.toString());
+        const rootRatings = comments
+          .filter((c: any) => typeof c.rating === 'number' && (!c.parentCommentId || c.parentCommentId === null))
+          .map((c: any) => c.rating);
+        let averageRating = null;
+        if (rootRatings.length > 0) {
+          averageRating = rootRatings.reduce((a: number, b: number) => a + b, 0) / rootRatings.length;
+          averageRating = Math.round(averageRating * 10) / 10; // Redondear a 1 decimal
+        }
+        return { ...d.toObject(), averageRating };
+      })
+    );
+
+    // Filtrar por minRating usando el nuevo averageRating
+    let filteredDrones = dronesWithRatings;
     if (minRating) {
-      drones = drones.filter((d: any) => (d.averageRating || 0) >= minRating);
+      filteredDrones = filteredDrones.filter((d: any) => (d.averageRating || 0) >= minRating);
     }
     // Ordenar por fecha de creación descendente
-    drones = drones.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    // Incluir averageRating en la respuesta
-    const result = drones.map((d: any) => ({ ...d.toObject(), averageRating: d.averageRating }));
+    filteredDrones = filteredDrones.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     // --- NUEVO: conversión de divisa ---
     const allowedCurrencies = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'NZD'];
     const targetCurrency = req.query.currency as string;
@@ -108,7 +125,7 @@ export const getDronesHandler = async (req: Request, res: Response) => {
     }
     // Convertir precios
     const convertedResult = await Promise.all(
-      drones.map(async (d: any) => {
+      filteredDrones.map(async (d: any) => {
         let price = d.price;
         let currency = d.currency;
         if (d.currency !== targetCurrency) {
