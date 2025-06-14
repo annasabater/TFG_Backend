@@ -16,7 +16,7 @@ interface CreatePostDTO {
 }
 
 /* -------- Crear post -------- */
-export const createPost = async (data: CreatePostDTO) => {
+const createPost = async (data: CreatePostDTO) => {
 	const payload: Partial<IPost> = {
 		author     : new mongoose.Types.ObjectId(data.author),
 		mediaUrl   : data.mediaUrl,
@@ -47,7 +47,7 @@ export const createPost = async (data: CreatePostDTO) => {
 };
 
 /* -------- Feed públic -------- */
-export const getFeed = async (page = 1, limit = 10) => {
+const getFeed = async (page = 1, limit = 10) => {
 	const skip = (page - 1) * limit;
 
 	return Post.find()
@@ -59,7 +59,7 @@ export const getFeed = async (page = 1, limit = 10) => {
 };
 
 /* -------- Feed de seguits -------- */
-export const getFollowingFeed = async (userId: string, page = 1, limit = 10) => {
+const getFollowingFeed = async (userId: string, page = 1, limit = 10) => {
 	const skip = (page - 1) * limit;
 	const user = await User.findById(userId).select('following');
 	if (!user) throw new Error('Usuario no encontrado');
@@ -75,7 +75,7 @@ export const getFollowingFeed = async (userId: string, page = 1, limit = 10) => 
 };
 
 /* -------- Posts d’un usuari -------- */
-export const getUserPosts = async (userId: string, page = 1, limit = 15) => {
+const getUserPosts = async (userId: string, page = 1, limit = 15) => {
 	const skip = (page - 1) * limit;
 
 	return Post.find({ author: new mongoose.Types.ObjectId(userId) })
@@ -86,7 +86,7 @@ export const getUserPosts = async (userId: string, page = 1, limit = 15) => {
 };
 
 /* -------- Like / Unlike -------- */
-export const toggleLike = async (postId: string, userId: string) => {
+const toggleLike = async (postId: string, userId: string) => {
 	const post = await Post.findById(postId);
 	if (!post) throw new Error('Post not found');
 
@@ -111,7 +111,7 @@ export const toggleLike = async (postId: string, userId: string) => {
 };
 
 /* -------- Comentari -------- */
-export const addComment = async (postId: string, userId: string, content: string) => {
+const addComment = async (postId: string, userId: string, content: string) => {
 	const post = await Post.findById(postId);
 	if (!post) throw new Error('Post not found');
 
@@ -129,7 +129,7 @@ export const addComment = async (postId: string, userId: string, content: string
 };
 
 /* -------- Obtenir post per ID -------- */
-export const getPostById = async (postId: string) => {
+const getPostById = async (postId: string) => {
 	return Post.findById(postId)
 		.populate('author', 'userName')
 		.populate('comments.author', 'userName')
@@ -137,7 +137,7 @@ export const getPostById = async (postId: string) => {
 };
 
 /* -------- Editar post -------- */
-export const updatePost = async (postId: string, userId: string, description: string) => {
+const updatePost = async (postId: string, userId: string, description: string) => {
 	const post = await Post.findById(postId);
 	if (!post) throw new Error('Post no encontrado');
 	if (!post.author.equals(userId)) throw new Error('No autorizado');
@@ -148,7 +148,7 @@ export const updatePost = async (postId: string, userId: string, description: st
 };
 
 /* -------- Eliminar post -------- */
-export const deletePost = async (postId: string, userId: string) => {
+const deletePost = async (postId: string, userId: string) => {
 	const post = await Post.findById(postId);
 	if (!post) throw new Error('Post no encontrado');
 	if (!post.author.equals(userId)) throw new Error('No autorizado');
@@ -158,7 +158,7 @@ export const deletePost = async (postId: string, userId: string) => {
 };
 
 /* -------- Eliminar comentari -------- */
-export const removeComment = async (
+const removeComment = async (
 	postId   : string,
 	commentId: string,
 	userId   : string
@@ -178,4 +178,17 @@ export const removeComment = async (
 
 	if (res.modifiedCount === 0)
 	{throw new Error('Comentari no trobat o no autoritzat');}
+};
+
+export {
+	createPost,
+	getFeed,
+	getFollowingFeed,
+	getUserPosts,
+	toggleLike,
+	addComment,
+	getPostById,
+	updatePost,
+	deletePost,
+	removeComment
 };

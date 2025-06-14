@@ -1,7 +1,5 @@
 //src/controllers/session_controller.ts
-import { Request, Response } from 'express';
-import mongoose from 'mongoose';
-import { Session } from '../models/session_models.js';
+import { Response } from 'express';
 import {
 	createSession,
 	joinLobby,

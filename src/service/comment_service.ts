@@ -1,24 +1,44 @@
 import Comment, { IComment } from '../models/comment_models.js';
-import User from '../models/user_models.js';
 
-export const addComment = async (data: IComment) => {
-	const comment = new Comment(data);
-	await comment.save();
-	return comment;
+interface PopulatedUser {
+	name: string;
+	email: string;
+}
+
+type CommentLean = Omit<IComment, 'userId'> & {
+  userId: PopulatedUser;
 };
 
-export const getCommentsByDrone = async (droneId: string) => {
-	// Obtener comentarios raíz y sus respuestas anidadas
-	const comments = await Comment.find({ droneId, parentCommentId: null })
+// 2) Ahora definimos el tipo final con replies anidados
+export interface ICommentWithReplies extends CommentLean {
+  replies: ICommentWithReplies[];
+}
+
+
+export const getCommentsByDrone = async (
+	droneId: string
+): Promise<ICommentWithReplies[]> => {
+	// Comentarios raíz, con userId poblado
+	const roots = await Comment.find({ droneId, parentCommentId: null })
 		.populate('userId', 'name email')
 		.sort({ createdAt: -1 })
-		.lean();
+		.lean<unknown>(); // usamos unknown para luego castear de forma segura
 
-	for (const comment of comments) {
-		(comment as any).replies = await Comment.find({ parentCommentId: comment._id })
-			.populate('userId', 'name email')
-			.sort({ createdAt: 1 })
-			.lean();
-	}
-	return comments;
+	// Construimos el nuevo array añadiendo `replies`
+	const commentsWithReplies: ICommentWithReplies[] = await Promise.all(
+		(roots as any[]).map(async (root) => {
+			const replies = await Comment.find({ parentCommentId: root._id })
+				.populate('userId', 'name email')
+				.sort({ createdAt: 1 })
+				.lean<unknown>();
+
+			return {
+				// root originalmente tenía userId como objeto { name, email }
+				...(root as Omit<ICommentWithReplies, 'replies'>),
+				replies: replies as PopulatedUser[] & ICommentWithReplies[],
+			};
+		})
+	);
+
+	return commentsWithReplies;
 };

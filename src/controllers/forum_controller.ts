@@ -1,5 +1,5 @@
 import { createEntry, deleteEntry, getAllForum, getEntryById, updateEntry } from '../service/forum_service.js';
-import express, { Request, Response } from 'express';
+import { Request, Response } from 'express';
 
 export const createEntryHandler = async (req: Request, res: Response) => {
 	try {

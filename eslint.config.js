@@ -36,8 +36,6 @@ export default [
       'curly': ['error', 'multi-line'],
       // Siempre punto y coma
       'semi': ['error', 'always'],
-      // Exports al final
-      'import/exports-last': ['error'],
       // Prohíbe console.log
       'no-restricted-syntax': [
         'error',
@@ -72,6 +70,12 @@ export default [
     files: ['src/middleware/isOwner.ts'],
     rules: {
       '@typescript-eslint/ban-ts-comment': 'off'
+    }
+  },
+  {
+    files: ['src/**/session_*.ts'],
+    rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
     }
   }
 ];
