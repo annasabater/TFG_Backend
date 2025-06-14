@@ -1,14 +1,20 @@
-//src/controllers/follow_controller.ts
-
+// src/controllers/follow_controller.ts
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import User from '../models/user_models.js';
 import { pushNotification } from '../service/notification_service.js';
 import { getFollowingUsers } from '../service/user_service.js';
 
-export const followUser = async (req: Request, res: Response) => {
+// 1. Definimos un tipo que incluye user.id en Request
+interface AuthenticatedRequest extends Request {
+	user: {
+		id: string;
+	};
+}
+
+export const followUser = async (req: AuthenticatedRequest, res: Response) => {
 	try {
-		const userId = (req as any).user.id;
+		const userId = req.user.id;
 		const targetId = req.params.userId;
 
 		if (userId === targetId) {
@@ -17,7 +23,9 @@ export const followUser = async (req: Request, res: Response) => {
 
 		const targetObjectId = new mongoose.Types.ObjectId(targetId);
 		const user = await User.findById(userId);
-		if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+		if (!user) {
+			return res.status(404).json({ message: 'Usuario no encontrado' });
+		}
 
 		if (!user.following.some(id => id.equals(targetObjectId))) {
 			user.following.push(targetObjectId);
@@ -25,59 +33,53 @@ export const followUser = async (req: Request, res: Response) => {
 
 			// Notificación de FOLLOW
 			await pushNotification({
-				to:   targetId,
+				to: targetId,
 				from: userId,
-				type: 'follow'
+				type: 'follow',
 			});
 		}
 
 		res.status(200).json({ message: 'Seguido correctamente' });
 	} catch (err: unknown) {
-		if (err instanceof Error) {
-			res.status(500).json({ message: err.message });
-		} else {
-			res.status(500).json({ message: String(err) });
-		}
+		const message = err instanceof Error ? err.message : String(err);
+		res.status(500).json({ message });
 	}
 };
 
-export const unfollowUser = async (req: Request, res: Response) => {
+export const unfollowUser = async (req: AuthenticatedRequest, res: Response) => {
 	try {
-		const userId = (req as any).user.id;
+		const userId = req.user.id;
 		const targetId = req.params.userId;
 		const targetObjectId = new mongoose.Types.ObjectId(targetId);
 
 		const user = await User.findById(userId);
-		if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+		if (!user) {
+			return res.status(404).json({ message: 'Usuario no encontrado' });
+		}
 
 		user.following = user.following.filter(id => !id.equals(targetObjectId));
 		await user.save();
 
 		res.status(200).json({ message: 'Dejaste de seguir al usuario' });
 	} catch (err: unknown) {
-		if (err instanceof Error) {
-			res.status(500).json({ message: err.message });
-		} else {
-			res.status(500).json({ message: String(err) });
-		}
+		const message = err instanceof Error ? err.message : String(err);
+		res.status(500).json({ message });
 	}
 };
 
-export const getMyFollowingHandler = async (req: Request, res: Response) => {
+export const getMyFollowingHandler = async (req: AuthenticatedRequest, res: Response) => {
 	try {
-		const userId = (req as any).user.id as string;
+		const userId = req.user.id;
 		const page = Number(req.query.page ?? 1);
 		const limit = Number(req.query.limit ?? 10);
+
 		const following = await getFollowingUsers(userId, page, limit);
 		res.json({ following });
 	} catch (err: unknown) {
-		if (err instanceof Error) {
-			if (err.message === 'Usuario no encontrado') {
-				return res.status(404).json({ message: err.message });
-			}
-			res.status(500).json({ message: err.message });
-		} else {
-			res.status(500).json({ message: String(err) });
+		if (err instanceof Error && err.message === 'Usuario no encontrado') {
+			return res.status(404).json({ message: err.message });
 		}
+		const message = err instanceof Error ? err.message : String(err);
+		res.status(500).json({ message });
 	}
 };

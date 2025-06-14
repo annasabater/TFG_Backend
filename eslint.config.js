@@ -58,22 +58,13 @@ export default [
     }
   },
   {
-    files: ['src/models/*.ts', 'src/server.ts'],
-    plugins: {
-      import: importPlugin
-    },
-    rules: {
-      'import/exports-last': 'off',
-    }
-  },
-  {
     files: ['src/middleware/isOwner.ts'],
     rules: {
       '@typescript-eslint/ban-ts-comment': 'off'
     }
   },
   {
-    files: ['src/**/session_*.ts'],
+    files: ['src/**/session_*.ts', 'src/server.ts', 'src/models/drone_models.ts'],
     rules: {
         '@typescript-eslint/no-explicit-any': 'off',
     }

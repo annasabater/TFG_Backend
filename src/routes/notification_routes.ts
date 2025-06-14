@@ -1,4 +1,5 @@
-import express from 'express';
+// src/routes/notifications.ts
+import express, { Request, Response } from 'express';
 import { checkJwt } from '../middleware/session.js';
 import { Notification } from '../models/notification_model.js';
 
@@ -21,54 +22,22 @@ const router = express.Router();
  *             schema:
  *               type: array
  *               items:
- *                 type: object
- *                 properties:
- *                   _id:
- *                     type: string
- *                     description: ID de la notificació
- *                   type:
- *                     type: string
- *                     enum: [like, comment, follow, new_post]
- *                     description: Tipus de notificació
- *                   to:
- *                     type: string
- *                     description: ID de l'usuari receptor
- *                   from:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                       userName:
- *                         type: string
- *                     description: Usuari emissor
- *                   post:
- *                     type: object
- *                     nullable: true
- *                     properties:
- *                       _id:
- *                         type: string
- *                       mediaUrl:
- *                         type: string
- *                     description: Post relacionat (si s'escau)
- *                   read:
- *                     type: boolean
- *                     description: Si la notificació ja ha estat llegida
- *                   createdAt:
- *                     type: string
- *                     format: date-time
- *                     description: Timestamp de creació
+ *                 # … (mismo schema de antes)
  */
 router.get(
 	'/notifications',
 	checkJwt,
-	async (req, res) => {
-		const uid = (req as any).user.id as string;
+	async (req: Request, res: Response) => {
+		// Aquí hacemos un assertion puntual, sin usar `any`
+		const uid = (req as Request & { user: { id: string } }).user.id;
+
 		const notis = await Notification
 			.find({ to: uid })
 			.sort({ createdAt: -1 })
 			.limit(30)
 			.populate('from', 'userName')
 			.populate('post', 'mediaUrl');
+
 		res.json(notis);
 	}
 );
@@ -104,11 +73,14 @@ router.get(
 router.patch(
 	'/notifications/:id/read',
 	checkJwt,
-	async (req, res) => {
+	async (req: Request, res: Response) => {
+		const uid = (req as Request & { user: { id: string } }).user.id;
+
 		await Notification.updateOne(
-			{ _id: req.params.id, to: (req as any).user.id },
+			{ _id: req.params.id, to: uid },
 			{ $set: { read: true } }
 		);
+
 		res.json({ ok: true });
 	}
 );

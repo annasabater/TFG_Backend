@@ -1,41 +1,40 @@
 // src/service/social_service.ts
-
-import { Post, IPost }      from '../models/post_model.js';
-import mongoose             from 'mongoose';
-import User                 from '../models/user_models.js';
+import { Post, IPost, IComment } from '../models/post_model.js';  // ← añade IComment aquí
+import mongoose from 'mongoose';
+import User from '../models/user_models.js';
 import { pushNotification } from './notification_service.js';
 
 
 interface CreatePostDTO {
-  author:      string;
-  mediaUrl:    string;
-  mediaType:   'image' | 'video';
-  description?:string;
-  location?:   string;
-  tags?:       string[];
+	author: string;
+	mediaUrl: string;
+	mediaType: 'image' | 'video';
+	description?: string;
+	location?: string;
+	tags?: string[];
 }
 
 /* -------- Crear post -------- */
-const createPost = async (data: CreatePostDTO) => {
+export const createPost = async (data: CreatePostDTO) => {
 	const payload: Partial<IPost> = {
-		author     : new mongoose.Types.ObjectId(data.author),
-		mediaUrl   : data.mediaUrl,
-		mediaType  : data.mediaType,
+		author: new mongoose.Types.ObjectId(data.author),
+		mediaUrl: data.mediaUrl,
+		mediaType: data.mediaType,
 		description: data.description,
-		location   : data.location,
-		tags       : (data.tags ?? []).map(id => new mongoose.Types.ObjectId(id)),
+		location: data.location,
+		tags: (data.tags ?? []).map(id => new mongoose.Types.ObjectId(id)),
 	};
 
 	const newPost = await Post.create(payload) as IPost & mongoose.Document;
 
 	// Notificar seguidors 
-	const author    = await User.findById(data.author).select('following');
+	const author = await User.findById(data.author).select('following');
 	const followers = author?.following.map(id => id.toString()) ?? [];
 
 	await Promise.all(
 		followers.map(fid =>
 			pushNotification({
-				to  : fid,
+				to: fid,
 				from: data.author,
 				type: 'new_post',
 				post: newPost._id.toString(),
@@ -47,7 +46,7 @@ const createPost = async (data: CreatePostDTO) => {
 };
 
 /* -------- Feed públic -------- */
-const getFeed = async (page = 1, limit = 10) => {
+export const getFeed = async (page = 1, limit = 10) => {
 	const skip = (page - 1) * limit;
 
 	return Post.find()
@@ -59,7 +58,7 @@ const getFeed = async (page = 1, limit = 10) => {
 };
 
 /* -------- Feed de seguits -------- */
-const getFollowingFeed = async (userId: string, page = 1, limit = 10) => {
+export const getFollowingFeed = async (userId: string, page = 1, limit = 10) => {
 	const skip = (page - 1) * limit;
 	const user = await User.findById(userId).select('following');
 	if (!user) throw new Error('Usuario no encontrado');
@@ -75,7 +74,7 @@ const getFollowingFeed = async (userId: string, page = 1, limit = 10) => {
 };
 
 /* -------- Posts d’un usuari -------- */
-const getUserPosts = async (userId: string, page = 1, limit = 15) => {
+export const getUserPosts = async (userId: string, page = 1, limit = 15) => {
 	const skip = (page - 1) * limit;
 
 	return Post.find({ author: new mongoose.Types.ObjectId(userId) })
@@ -86,7 +85,7 @@ const getUserPosts = async (userId: string, page = 1, limit = 15) => {
 };
 
 /* -------- Like / Unlike -------- */
-const toggleLike = async (postId: string, userId: string) => {
+export const toggleLike = async (postId: string, userId: string) => {
 	const post = await Post.findById(postId);
 	if (!post) throw new Error('Post not found');
 
@@ -97,7 +96,7 @@ const toggleLike = async (postId: string, userId: string) => {
 		post.likes.push(uid);
 		await post.save();
 		await pushNotification({
-			to  : post.author.toString(),
+			to: post.author.toString(),
 			from: userId,
 			type: 'like',
 			post: postId,
@@ -111,15 +110,26 @@ const toggleLike = async (postId: string, userId: string) => {
 };
 
 /* -------- Comentari -------- */
-const addComment = async (postId: string, userId: string, content: string) => {
+export const addComment = async (
+	postId: string,
+	userId: string,
+	content: string
+) => {
 	const post = await Post.findById(postId);
 	if (!post) throw new Error('Post not found');
+	const commentsArray = post.comments as unknown as
+		mongoose.Types.DocumentArray<IComment>;
 
-	post.comments.push({ author: new mongoose.Types.ObjectId(userId), content } as any);
+	const comment = commentsArray.create({
+		author: new mongoose.Types.ObjectId(userId),
+		content: content,
+	});
+
+	post.comments.push(comment);
 	await post.save();
 
 	await pushNotification({
-		to  : post.author.toString(),
+		to: post.author.toString(),
 		from: userId,
 		type: 'comment',
 		post: postId,
@@ -128,8 +138,9 @@ const addComment = async (postId: string, userId: string, content: string) => {
 	return post.comments.at(-1);
 };
 
+
 /* -------- Obtenir post per ID -------- */
-const getPostById = async (postId: string) => {
+export const getPostById = async (postId: string) => {
 	return Post.findById(postId)
 		.populate('author', 'userName')
 		.populate('comments.author', 'userName')
@@ -137,7 +148,7 @@ const getPostById = async (postId: string) => {
 };
 
 /* -------- Editar post -------- */
-const updatePost = async (postId: string, userId: string, description: string) => {
+export const updatePost = async (postId: string, userId: string, description: string) => {
 	const post = await Post.findById(postId);
 	if (!post) throw new Error('Post no encontrado');
 	if (!post.author.equals(userId)) throw new Error('No autorizado');
@@ -148,7 +159,7 @@ const updatePost = async (postId: string, userId: string, description: string) =
 };
 
 /* -------- Eliminar post -------- */
-const deletePost = async (postId: string, userId: string) => {
+export const deletePost = async (postId: string, userId: string) => {
 	const post = await Post.findById(postId);
 	if (!post) throw new Error('Post no encontrado');
 	if (!post.author.equals(userId)) throw new Error('No autorizado');
@@ -158,37 +169,22 @@ const deletePost = async (postId: string, userId: string) => {
 };
 
 /* -------- Eliminar comentari -------- */
-const removeComment = async (
-	postId   : string,
+export const removeComment = async (
+	postId: string,
 	commentId: string,
-	userId   : string
+	userId: string
 ) => {
 
-	if (!mongoose.isValidObjectId(commentId))
-	{throw new Error('ID de comentari invàlida');}
+	if (!mongoose.isValidObjectId(commentId)) { throw new Error('ID de comentari invàlida'); }
 
 	const res = await Post.updateOne(
 		{
-			_id               : postId,
-			'comments._id'    : commentId,
-			'comments.author' : userId       
+			_id: postId,
+			'comments._id': commentId,
+			'comments.author': userId
 		},
 		{ $pull: { comments: { _id: commentId } } }
 	);
 
-	if (res.modifiedCount === 0)
-	{throw new Error('Comentari no trobat o no autoritzat');}
-};
-
-export {
-	createPost,
-	getFeed,
-	getFollowingFeed,
-	getUserPosts,
-	toggleLike,
-	addComment,
-	getPostById,
-	updatePost,
-	deletePost,
-	removeComment
+	if (res.modifiedCount === 0) { throw new Error('Comentari no trobat o no autoritzat'); }
 };

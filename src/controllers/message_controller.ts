@@ -1,14 +1,6 @@
 //src/controllers/message_controller.ts
 import { Request, Response } from 'express';
 import {
-	createDrone,
-	getDrones,
-	getDroneById,
-	updateDrone,
-	deleteDrone,
-	getDronesByCategory,
-	getDronesByPriceRange,
-	addReviewToDrone,
 	sendMessage,
 	getMessages,
 	createOrder,
@@ -17,135 +9,7 @@ import {
 	getUserPayments,
 	getConversations
 } from '../service/message_service.js';
-
 import { chatNsp } from '../server.js';
-
-export async function createDroneHandler(req: Request, res: Response) {
-	try {
-		const drone = await createDrone(req.body);
-		return res.status(201).json(drone);
-	} catch (error: unknown) {
-		if (error instanceof Error) {
-			return res.status(500).json({ message: error.message });
-		} else {
-			return res.status(500).json({ message: String(error) });
-		}
-	}
-}
-
-export async function getDronesHandler(req: Request, res: Response) {
-	try {
-		// Recoger filtros de la query
-		const filters: any = {
-			min: req.query.min,
-			max: req.query.max,
-			minRating: req.query.minRating,
-			category: req.query.category,
-			condition: req.query.condition,
-			location: req.query.location
-			// ...puedes añadir más filtros aquí si lo necesitas...
-		};
-		// Limpiar filtros vacíos
-		Object.keys(filters).forEach(key => (filters[key] === undefined || filters[key] === '') && delete filters[key]);
-		const drones = await getDrones(filters);
-		return res.status(200).json(drones);
-	} catch (error: unknown) {
-		if (error instanceof Error) {
-			return res.status(500).json({ message: error.message });
-		} else {
-			return res.status(500).json({ message: String(error) });
-		}
-	}
-}
-
-export async function getDroneByIdHandler(req: Request, res: Response) {
-	try {
-		const drone = await getDroneById(req.params.id);
-		if (!drone) return res.status(404).json({ message: 'Dron no encontrado' });
-		return res.status(200).json(drone);
-	} catch (error: unknown) {
-		if (error instanceof Error) {
-			return res.status(500).json({ message: error.message });
-		} else {
-			return res.status(500).json({ message: String(error) });
-		}
-	}
-}
-
-export async function updateDroneHandler(req: Request, res: Response) {
-	try {
-		const updated = await updateDrone(req.params.id, req.body);
-		if (!updated) return res.status(404).json({ message: 'Dron no encontrado' });
-		return res.status(200).json(updated);
-	} catch (error: unknown) {
-		if (error instanceof Error) {
-			return res.status(500).json({ message: error.message });
-		} else {
-			return res.status(500).json({ message: String(error) });
-		}
-	}
-}
-
-export async function deleteDroneHandler(req: Request, res: Response) {
-	try {
-		const deleted = await deleteDrone(req.params.id);
-		if (!deleted) return res.status(404).json({ message: 'Dron no encontrado' });
-		return res.status(200).json({ message: 'Dron eliminado' });
-	} catch (error: unknown) {
-		if (error instanceof Error) {
-			return res.status(500).json({ message: error.message });
-		} else {
-			return res.status(500).json({ message: String(error) });
-		}
-	}
-}
-
-export async function addDroneReviewHandler(req: Request, res: Response) {
-	try {
-		const { rating, comment, userId } = req.body;
-		const drone = await addReviewToDrone(req.params.id, userId, rating, comment);
-		if (!drone) return res.status(404).json({ message: 'Dron o usuario no encontrado' });
-		return res.status(200).json(drone);
-	} catch (error: unknown) {
-		if (error instanceof Error) {
-			return res.status(500).json({ message: error.message });
-		} else {
-			return res.status(500).json({ message: String(error) });
-		}
-	}
-}
-
-export async function getDronesByCategoryHandler(req: Request, res: Response) {
-	try {
-		const drones = await getDronesByCategory(req.params.category);
-		return res.status(200).json(drones);
-	} catch (error: unknown) {
-		if (error instanceof Error) {
-			return res.status(500).json({ message: error.message });
-		} else {
-			return res.status(500).json({ message: String(error) });
-		}
-	}
-}
-
-export async function getDronesByPriceRangeHandler(req: Request, res: Response) {
-	try {
-		const min = Number(req.query.min);
-		const max = Number(req.query.max);
-		if (isNaN(min) || isNaN(max)) {
-			return res.status(400).json({ message: 'Parámetros inválidos' });
-		}
-		const drones = await getDronesByPriceRange(min, max);
-		return res.status(200).json(drones);
-	} catch (error: unknown) {
-		if (error instanceof Error) {
-			return res.status(500).json({ message: error.message });
-		} else {
-			return res.status(500).json({ message: String(error) });
-		}
-	}
-}
-
 
 export async function sendMessageHandler(req: Request, res: Response) {
 	try {
@@ -153,7 +17,7 @@ export async function sendMessageHandler(req: Request, res: Response) {
 		const msg = await sendMessage(senderId, receiverId, content);
 
 		const payload = msg.toObject();
-		payload.senderId   = payload.senderId.toString();
+		payload.senderId = payload.senderId.toString();
 		payload.receiverId = payload.receiverId.toString();
 
 		chatNsp.to(payload.receiverId).emit('new_message', payload);

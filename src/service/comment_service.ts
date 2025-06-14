@@ -1,4 +1,5 @@
 import Comment, { IComment } from '../models/comment_models.js';
+import mongoose from 'mongoose';
 
 interface PopulatedUser {
 	name: string;
@@ -6,39 +7,39 @@ interface PopulatedUser {
 }
 
 type CommentLean = Omit<IComment, 'userId'> & {
-  userId: PopulatedUser;
+	_id: mongoose.Types.ObjectId;
+	userId: PopulatedUser;
 };
 
-// 2) Ahora definimos el tipo final con replies anidados
 export interface ICommentWithReplies extends CommentLean {
-  replies: ICommentWithReplies[];
+	replies: ICommentWithReplies[];
 }
-
+export const addComment = async (data: IComment) => {
+	const comment = new Comment(data);
+	await comment.save();
+	return comment;
+};
 
 export const getCommentsByDrone = async (
 	droneId: string
 ): Promise<ICommentWithReplies[]> => {
-	// Comentarios raíz, con userId poblado
-	const roots = await Comment.find({ droneId, parentCommentId: null })
+	// 3) Obtenemos las raíces, TS ve que esto es CommentLean[]
+	const roots = (await Comment.find({ droneId, parentCommentId: null })
 		.populate('userId', 'name email')
 		.sort({ createdAt: -1 })
-		.lean<unknown>(); // usamos unknown para luego castear de forma segura
+		.lean<CommentLean>()) as unknown as CommentLean[];
 
-	// Construimos el nuevo array añadiendo `replies`
-	const commentsWithReplies: ICommentWithReplies[] = await Promise.all(
-		(roots as any[]).map(async (root) => {
-			const replies = await Comment.find({ parentCommentId: root._id })
-				.populate('userId', 'name email')
-				.sort({ createdAt: 1 })
-				.lean<unknown>();
+	// 4) Función recursiva que añade replies
+	async function attachReplies(
+		node: CommentLean
+	): Promise<ICommentWithReplies> {
+		const children = (await Comment.find({ parentCommentId: node._id })
+			.populate('userId', 'name email')
+			.sort({ createdAt: 1 })
+			.lean<CommentLean>()) as unknown as CommentLean[];
 
-			return {
-				// root originalmente tenía userId como objeto { name, email }
-				...(root as Omit<ICommentWithReplies, 'replies'>),
-				replies: replies as PopulatedUser[] & ICommentWithReplies[],
-			};
-		})
-	);
-
-	return commentsWithReplies;
+		const replies = await Promise.all(children.map(attachReplies));
+		return { ...node, replies };
+	}
+	return Promise.all(roots.map(attachReplies));
 };
