@@ -22,6 +22,12 @@ const userSchema = new mongoose.Schema({
     model: String,
     price: Number,
     currency: String,
+    images: [String],
+    details: String,
+    category: String,
+    condition: String,
+    location: String,
+    contact: String,
     date: { type: Date, default: Date.now }
   }],
   sales: [{
@@ -29,6 +35,12 @@ const userSchema = new mongoose.Schema({
     model: String,
     price: Number,
     currency: String,
+    images: [String],
+    details: String,
+    category: String,
+    condition: String,
+    location: String,
+    contact: String,
     date: { type: Date, default: Date.now }
   }],
 });
@@ -57,6 +69,12 @@ export interface IUser {
     model: string;
     price: number;
     currency: string;
+    images?: string[];
+    details?: string;
+    category?: string;
+    condition?: string;
+    location?: string;
+    contact?: string;
     date: Date;
   }>;
   sales?: Array<{
@@ -64,6 +82,12 @@ export interface IUser {
     model: string;
     price: number;
     currency: string;
+    images?: string[];
+    details?: string;
+    category?: string;
+    condition?: string;
+    location?: string;
+    contact?: string;
     date: Date;
   }>;
 }

@@ -160,6 +160,12 @@ export const purchaseDroneWithBalance = async (droneId: string, userId: string, 
     model: drone.model,
     price: price,
     currency: payWithCurrency,
+    images: drone.images,
+    details: drone.details,
+    category: drone.category,
+    condition: drone.condition,
+    location: drone.location,
+    contact: drone.contact,
     date: new Date()
   };
   if (user) {
@@ -234,6 +240,12 @@ export const purchaseMultipleDrones = async (
       model: drone.model,
       price: price,
       currency: payWithCurrency,
+      images: drone.images,
+      details: drone.details,
+      category: drone.category,
+      condition: drone.condition,
+      location: drone.location,
+      contact: drone.contact,
       date: new Date()
     });
   }
@@ -264,6 +276,12 @@ export const purchaseMultipleDrones = async (
         model: drone.model,
         price: drone.price,
         currency: drone.currency,
+        images: drone.images,
+        details: drone.details,
+        category: drone.category,
+        condition: drone.condition,
+        location: drone.location,
+        contact: drone.contact,
         date: new Date()
       });
       await seller.save();
