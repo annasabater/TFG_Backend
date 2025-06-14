@@ -237,7 +237,8 @@ export const getOwnerByDroneIdHandler = async (req:Request,res: Response) => {
 
 		res.status(200).json(user);
 	} catch (error: unknown) {
-		res.status(500).json({ message: error.message || "Error al obtener el dron" });
+		const errMsg = error instanceof Error ? error.message : "Error al obtener el dron";
+		res.status(500).json({ message: errMsg });
 	}
 };
 
