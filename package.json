@@ -9,7 +9,7 @@
         "start": "tsc && cd ./build && node server.js",
         "lint": "cross-env ESLINT_USE_FLAT_CONFIG=true eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
         "lint:fix": "eslint \"src/**/*.ts\" --fix",
-        "prepare": "husky install"
+        "prepare": "husky"
     },
     "lint-staged": {
         "**/*.{ts,tsx}": [
