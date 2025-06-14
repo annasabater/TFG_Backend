@@ -16,6 +16,21 @@ const userSchema = new mongoose.Schema({
     of: Number,
     default: undefined // Usar undefined para evitar problemas con {}
   },
+
+  purchases: [{
+    droneId: { type: mongoose.Schema.Types.ObjectId, ref: 'Drone' },
+    model: String,
+    price: Number,
+    currency: String,
+    date: { type: Date, default: Date.now }
+  }],
+  sales: [{
+    droneId: { type: mongoose.Schema.Types.ObjectId, ref: 'Drone' },
+    model: String,
+    price: Number,
+    currency: String,
+    date: { type: Date, default: Date.now }
+  }],
 });
 
   
@@ -37,6 +52,20 @@ export interface IUser {
   favorites?: mongoose.Types.ObjectId[];
   following?: mongoose.Types.ObjectId[]; 
   balance?: Map<string, number>;
+  purchases?: Array<{
+    droneId: mongoose.Types.ObjectId;
+    model: string;
+    price: number;
+    currency: string;
+    date: Date;
+  }>;
+  sales?: Array<{
+    droneId: mongoose.Types.ObjectId;
+    model: string;
+    price: number;
+    currency: string;
+    date: Date;
+  }>;
 }
 
 

@@ -152,6 +152,27 @@ export const purchaseDroneWithBalance = async (droneId: string, userId: string, 
   drone.status = 'venut';
   drone.buyerId = new mongoose.Types.ObjectId(userId);
   await drone.save();
+
+  // Guardar historial de compra y venta
+  const seller = await User.findById(drone.ownerId);
+  const purchaseEntry = {
+    droneId: drone._id,
+    model: drone.model,
+    price: price,
+    currency: payWithCurrency,
+    date: new Date()
+  };
+  if (user) {
+    user.purchases = user.purchases || [];
+    user.purchases.push(purchaseEntry);
+    await user.save();
+  }
+  if (seller) {
+    seller.sales = seller.sales || [];
+    seller.sales.push(purchaseEntry);
+    await seller.save();
+  }
+
   return { drone, user: { ...user.toObject(), balance: Object.fromEntries(user.balance) } };
 };
 
@@ -193,6 +214,7 @@ export const purchaseMultipleDrones = async (
 
   let total = 0;
   const dronesToUpdate: any[] = [];
+  const purchaseEntries: any[] = [];
   for (const item of items) {
     const drone = await Drone.findById(item.droneId);
     if (!drone) throw new Error(`Dron ${item.droneId} no encontrado`);
@@ -206,7 +228,14 @@ export const purchaseMultipleDrones = async (
       price = Math.round((drone.price / rate) * 100) / 100;
     }
     total += price * item.quantity;
-    dronesToUpdate.push({ drone, quantity: item.quantity });
+    dronesToUpdate.push({ drone, quantity: item.quantity, price });
+    purchaseEntries.push({
+      droneId: drone._id,
+      model: drone.model,
+      price: price,
+      currency: payWithCurrency,
+      date: new Date()
+    });
   }
   const userBalance = user.balance.get(payWithCurrency) || 0;
   if (userBalance < total) throw new Error('Saldo insuficiente en la divisa seleccionada');
@@ -222,6 +251,34 @@ export const purchaseMultipleDrones = async (
     }
     await drone.save();
   }
+  // Guardar historial de compra y venta
+  user.purchases = user.purchases || [];
+  user.purchases.push(...purchaseEntries);
+  await user.save();
+  for (const { drone } of dronesToUpdate) {
+    const seller = await User.findById(drone.ownerId);
+    if (seller) {
+      seller.sales = seller.sales || [];
+      seller.sales.push({
+        droneId: drone._id,
+        model: drone.model,
+        price: drone.price,
+        currency: drone.currency,
+        date: new Date()
+      });
+      await seller.save();
+    }
+  }
   return { success: true, total, currency: payWithCurrency, user: { ...user.toObject(), balance: Object.fromEntries(user.balance) } };
+};
+
+export const getUserPurchaseHistory = async (userId: string) => {
+  const user = await User.findById(userId);
+  return user?.purchases || [];
+};
+
+export const getUserSalesHistory = async (userId: string) => {
+  const user = await User.findById(userId);
+  return user?.sales || [];
 };
 

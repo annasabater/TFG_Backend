@@ -17,6 +17,8 @@ import {
   purchaseDroneHandler,
   purchaseMultipleDronesHandler, // <--- añadido
   getDroneConvertedPriceHandler,
+  getUserPurchaseHistoryHandler,
+  getUserSalesHistoryHandler,
 } from '../controllers/drone_controller.js';
 import { uploadImages, validateMinImages } from '../middleware/upload.js';
 
@@ -696,5 +698,59 @@ router.get('/drones/:id/converted-price', getDroneConvertedPriceHandler);
  *       404:
  *         description: Dron no encontrado
  */
+
+/**
+ * @openapi
+ * /api/users/{userId}/purchase-history:
+ *   get:
+ *     summary: Obtener historial de compras de drones de un usuario
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Historial de compras
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Error interno
+ */
+router.get('/users/:userId/purchase-history', getUserPurchaseHistoryHandler);
+
+/**
+ * @openapi
+ * /api/users/{userId}/sales-history:
+ *   get:
+ *     summary: Obtener historial de ventas de drones de un usuario
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Historial de ventas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Error interno
+ */
+router.get('/users/:userId/sales-history', getUserSalesHistoryHandler);
 
 export default router;

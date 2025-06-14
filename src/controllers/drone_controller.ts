@@ -17,7 +17,9 @@ import {
     getFavorites,
     purchaseDroneWithBalance,
     getDroneWithConvertedPrice,
-    purchaseMultipleDrones // <--- añadido
+    purchaseMultipleDrones,
+    getUserPurchaseHistory,
+    getUserSalesHistory
   } from '../service/drone_service.js';
 import { getCommentsByDrone } from '../service/comment_service.js';
 import exp from 'constants';
@@ -423,6 +425,26 @@ export const getDroneConvertedPriceHandler = async (req: Request, res: Response)
     res.status(200).json(drone);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
+  }
+};
+
+export const getUserPurchaseHistoryHandler = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const purchases = await getUserPurchaseHistory(userId);
+    res.status(200).json(purchases);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || 'Error al obtener el historial de compras del usuario' });
+  }
+};
+
+export const getUserSalesHistoryHandler = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const sales = await getUserSalesHistory(userId);
+    res.status(200).json(sales);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || 'Error al obtener el historial de ventas del usuario' });
   }
 };
 
