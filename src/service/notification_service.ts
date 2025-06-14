@@ -8,6 +8,6 @@ export const pushNotification = async (p: {
   type: 'like' | 'comment' | 'follow' | 'new_post';
   post?: string;
 }) => {
-  if (p.to === p.from) return;          // no ens notifiquem a nosaltres mateixos
-  await Notification.create(p);
+	if (p.to === p.from) return;          // no ens notifiquem a nosaltres mateixos
+	await Notification.create(p);
 };

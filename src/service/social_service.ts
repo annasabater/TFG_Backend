@@ -17,165 +17,165 @@ interface CreatePostDTO {
 
 /* -------- Crear post -------- */
 export const createPost = async (data: CreatePostDTO) => {
-  const payload: Partial<IPost> = {
-    author     : new mongoose.Types.ObjectId(data.author),
-    mediaUrl   : data.mediaUrl,
-    mediaType  : data.mediaType,
-    description: data.description,
-    location   : data.location,
-    tags       : (data.tags ?? []).map(id => new mongoose.Types.ObjectId(id)),
-  };
+	const payload: Partial<IPost> = {
+		author     : new mongoose.Types.ObjectId(data.author),
+		mediaUrl   : data.mediaUrl,
+		mediaType  : data.mediaType,
+		description: data.description,
+		location   : data.location,
+		tags       : (data.tags ?? []).map(id => new mongoose.Types.ObjectId(id)),
+	};
 
-  const newPost = await Post.create(payload) as IPost & mongoose.Document;
+	const newPost = await Post.create(payload) as IPost & mongoose.Document;
 
-  // Notificar seguidors 
-  const author    = await User.findById(data.author).select('following');
-  const followers = author?.following.map(id => id.toString()) ?? [];
+	// Notificar seguidors 
+	const author    = await User.findById(data.author).select('following');
+	const followers = author?.following.map(id => id.toString()) ?? [];
 
-  await Promise.all(
-    followers.map(fid =>
-      pushNotification({
-        to  : fid,
-        from: data.author,
-        type: 'new_post',
-        post: newPost._id.toString(),
-      })
-    )
-  );
+	await Promise.all(
+		followers.map(fid =>
+			pushNotification({
+				to  : fid,
+				from: data.author,
+				type: 'new_post',
+				post: newPost._id.toString(),
+			})
+		)
+	);
 
-  return newPost;
+	return newPost;
 };
 
 /* -------- Feed públic -------- */
 export const getFeed = async (page = 1, limit = 10) => {
-  const skip = (page - 1) * limit;
+	const skip = (page - 1) * limit;
 
-  return Post.find()
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .populate('author', 'userName email')
-    .populate('tags', 'userName');
+	return Post.find()
+		.sort({ createdAt: -1 })
+		.skip(skip)
+		.limit(limit)
+		.populate('author', 'userName email')
+		.populate('tags', 'userName');
 };
 
 /* -------- Feed de seguits -------- */
 export const getFollowingFeed = async (userId: string, page = 1, limit = 10) => {
-  const skip = (page - 1) * limit;
-  const user = await User.findById(userId).select('following');
-  if (!user) throw new Error('Usuario no encontrado');
+	const skip = (page - 1) * limit;
+	const user = await User.findById(userId).select('following');
+	if (!user) throw new Error('Usuario no encontrado');
 
-  const followed = [...user.following, user._id];
+	const followed = [...user.following, user._id];
 
-  return Post.find({ author: { $in: followed } })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .populate('author', 'userName email')
-    .populate('tags', 'userName');
+	return Post.find({ author: { $in: followed } })
+		.sort({ createdAt: -1 })
+		.skip(skip)
+		.limit(limit)
+		.populate('author', 'userName email')
+		.populate('tags', 'userName');
 };
 
 /* -------- Posts d’un usuari -------- */
 export const getUserPosts = async (userId: string, page = 1, limit = 15) => {
-  const skip = (page - 1) * limit;
+	const skip = (page - 1) * limit;
 
-  return Post.find({ author: new mongoose.Types.ObjectId(userId) })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .populate('author', 'userName');
+	return Post.find({ author: new mongoose.Types.ObjectId(userId) })
+		.sort({ createdAt: -1 })
+		.skip(skip)
+		.limit(limit)
+		.populate('author', 'userName');
 };
 
 /* -------- Like / Unlike -------- */
 export const toggleLike = async (postId: string, userId: string) => {
-  const post = await Post.findById(postId);
-  if (!post) throw new Error('Post not found');
+	const post = await Post.findById(postId);
+	if (!post) throw new Error('Post not found');
 
-  const uid = new mongoose.Types.ObjectId(userId);
-  const idx = post.likes.findIndex(l => l.equals(uid));
+	const uid = new mongoose.Types.ObjectId(userId);
+	const idx = post.likes.findIndex(l => l.equals(uid));
 
-  if (idx < 0) {
-    post.likes.push(uid);
-    await post.save();
-    await pushNotification({
-      to  : post.author.toString(),
-      from: userId,
-      type: 'like',
-      post: postId,
-    });
-  } else {
-    post.likes.splice(idx, 1);
-    await post.save();
-  }
+	if (idx < 0) {
+		post.likes.push(uid);
+		await post.save();
+		await pushNotification({
+			to  : post.author.toString(),
+			from: userId,
+			type: 'like',
+			post: postId,
+		});
+	} else {
+		post.likes.splice(idx, 1);
+		await post.save();
+	}
 
-  return post.likes.length;
+	return post.likes.length;
 };
 
 /* -------- Comentari -------- */
 export const addComment = async (postId: string, userId: string, content: string) => {
-  const post = await Post.findById(postId);
-  if (!post) throw new Error('Post not found');
+	const post = await Post.findById(postId);
+	if (!post) throw new Error('Post not found');
 
-  post.comments.push({ author: new mongoose.Types.ObjectId(userId), content } as any);
-  await post.save();
+	post.comments.push({ author: new mongoose.Types.ObjectId(userId), content } as any);
+	await post.save();
 
-  await pushNotification({
-    to  : post.author.toString(),
-    from: userId,
-    type: 'comment',
-    post: postId,
-  });
+	await pushNotification({
+		to  : post.author.toString(),
+		from: userId,
+		type: 'comment',
+		post: postId,
+	});
 
-  return post.comments.at(-1);
+	return post.comments.at(-1);
 };
 
 /* -------- Obtenir post per ID -------- */
 export const getPostById = async (postId: string) => {
-  return Post.findById(postId)
-    .populate('author', 'userName')
-    .populate('comments.author', 'userName')
-    .exec();
+	return Post.findById(postId)
+		.populate('author', 'userName')
+		.populate('comments.author', 'userName')
+		.exec();
 };
 
 /* -------- Editar post -------- */
 export const updatePost = async (postId: string, userId: string, description: string) => {
-  const post = await Post.findById(postId);
-  if (!post) throw new Error('Post no encontrado');
-  if (!post.author.equals(userId)) throw new Error('No autorizado');
+	const post = await Post.findById(postId);
+	if (!post) throw new Error('Post no encontrado');
+	if (!post.author.equals(userId)) throw new Error('No autorizado');
 
-  post.description = description;
-  await post.save();
-  return post;
+	post.description = description;
+	await post.save();
+	return post;
 };
 
 /* -------- Eliminar post -------- */
 export const deletePost = async (postId: string, userId: string) => {
-  const post = await Post.findById(postId);
-  if (!post) throw new Error('Post no encontrado');
-  if (!post.author.equals(userId)) throw new Error('No autorizado');
+	const post = await Post.findById(postId);
+	if (!post) throw new Error('Post no encontrado');
+	if (!post.author.equals(userId)) throw new Error('No autorizado');
 
-  await post.deleteOne();
-  return { message: 'Post eliminado' };
+	await post.deleteOne();
+	return { message: 'Post eliminado' };
 };
 
 /* -------- Eliminar comentari -------- */
 export const removeComment = async (
-  postId   : string,
-  commentId: string,
-  userId   : string
+	postId   : string,
+	commentId: string,
+	userId   : string
 ) => {
 
-  if (!mongoose.isValidObjectId(commentId))
-    throw new Error('ID de comentari invàlida');
+	if (!mongoose.isValidObjectId(commentId))
+	{throw new Error('ID de comentari invàlida');}
 
-  const res = await Post.updateOne(
-    {
-      _id               : postId,
-      'comments._id'    : commentId,
-      'comments.author' : userId       
-    },
-    { $pull: { comments: { _id: commentId } } }
-  );
+	const res = await Post.updateOne(
+		{
+			_id               : postId,
+			'comments._id'    : commentId,
+			'comments.author' : userId       
+		},
+		{ $pull: { comments: { _id: commentId } } }
+	);
 
-  if (res.modifiedCount === 0)
-    throw new Error('Comentari no trobat o no autoritzat');
+	if (res.modifiedCount === 0)
+	{throw new Error('Comentari no trobat o no autoritzat');}
 };

@@ -1,14 +1,13 @@
 // src/routes/session_routes.ts
-
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import {
-  createSessionHandler,
-  joinLobbyHandler,
-  listPendingHandler,
-  acceptPlayersHandler,
-  getScenarioHandler
+	createSessionHandler,
+	joinLobbyHandler,
+	listPendingHandler,
+	acceptPlayersHandler,
+	getScenarioHandler
 } from '../controllers/session_controller.js';
-import { checkJwt, verifyRole } from '../middleware/session.js';
+import { checkJwt } from '../middleware/session.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
 import { Session } from '../models/session_models.js';
 
@@ -74,10 +73,10 @@ const router = Router();
  *         description: No autorizado
  */
 router.post(
-  '/sessions',
-  generalRateLimiter,
-  checkJwt,
-  createSessionHandler
+	'/sessions',
+	generalRateLimiter,
+	checkJwt,
+	createSessionHandler
 );
 
 /**
@@ -109,10 +108,10 @@ router.post(
  *         description: No autorizado
  */
 router.post(
-  '/sessions/:id/join',
-  generalRateLimiter,
-  checkJwt,
-  joinLobbyHandler
+	'/sessions/:id/join',
+	generalRateLimiter,
+	checkJwt,
+	joinLobbyHandler
 );
 
 /**
@@ -137,10 +136,10 @@ router.post(
  *         description: No autorizado
  */
 router.get(
-  '/sessions/pending',
-  generalRateLimiter,
-  checkJwt,
-  listPendingHandler
+	'/sessions/pending',
+	generalRateLimiter,
+	checkJwt,
+	listPendingHandler
 );
 
 /**
@@ -184,10 +183,10 @@ router.get(
  *         description: No autorizado
  */
 router.post(
-  '/sessions/:id/accept',
-  generalRateLimiter,
-  checkJwt,
-  acceptPlayersHandler
+	'/sessions/:id/accept',
+	generalRateLimiter,
+	checkJwt,
+	acceptPlayersHandler
 );
 
 /**
@@ -224,10 +223,10 @@ router.post(
  *         description: No autorizado
  */
 router.get(
-  '/sessions/:id/scenario',
-  generalRateLimiter,
-  checkJwt,
-  getScenarioHandler
+	'/sessions/:id/scenario',
+	generalRateLimiter,
+	checkJwt,
+	getScenarioHandler
 );
 
 
@@ -281,15 +280,15 @@ router.get(
  *         description: No autorizado
  */
 router.get(
-  '/sessions/open',
-  generalRateLimiter,
-  checkJwt,
-  async (req, res) => {
-    const sessions = await Session.find({
-      status: { $in: ['WAITING', 'RUNNING'] }
-    });
-    res.json(sessions);
-  }
+	'/sessions/open',
+	generalRateLimiter,
+	checkJwt,
+	async (req, res) => {
+		const sessions = await Session.find({
+			status: { $in: ['WAITING', 'RUNNING'] }
+		});
+		res.json(sessions);
+	}
 );
 
 export default router;

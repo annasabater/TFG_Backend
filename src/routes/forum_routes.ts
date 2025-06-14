@@ -1,9 +1,9 @@
 import express from 'express';
 import { createEntryHandler,
-         deleteEntryHandler,
-         getAllForumHandler,
-         getEntryByIdHandler,
-         updateEntryHandler } from '../controllers/forum_controller.js';
+	deleteEntryHandler,
+	getAllForumHandler,
+	getEntryByIdHandler,
+	updateEntryHandler } from '../controllers/forum_controller.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();

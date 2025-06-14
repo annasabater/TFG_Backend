@@ -59,18 +59,18 @@ const router = express.Router();
  *                     description: Timestamp de creació
  */
 router.get(
-  '/notifications',
-  checkJwt,
-  async (req, res) => {
-    const uid = (req as any).user.id as string;
-    const notis = await Notification
-      .find({ to: uid })
-      .sort({ createdAt: -1 })
-      .limit(30)
-      .populate('from', 'userName')
-      .populate('post', 'mediaUrl');
-    res.json(notis);
-  }
+	'/notifications',
+	checkJwt,
+	async (req, res) => {
+		const uid = (req as any).user.id as string;
+		const notis = await Notification
+			.find({ to: uid })
+			.sort({ createdAt: -1 })
+			.limit(30)
+			.populate('from', 'userName')
+			.populate('post', 'mediaUrl');
+		res.json(notis);
+	}
 );
 
 /**
@@ -102,15 +102,15 @@ router.get(
  *                   example: true
  */
 router.patch(
-  '/notifications/:id/read',
-  checkJwt,
-  async (req, res) => {
-    await Notification.updateOne(
-      { _id: req.params.id, to: (req as any).user.id },
-      { $set: { read: true } }
-    );
-    res.json({ ok: true });
-  }
+	'/notifications/:id/read',
+	checkJwt,
+	async (req, res) => {
+		await Notification.updateOne(
+			{ _id: req.params.id, to: (req as any).user.id },
+			{ $set: { read: true } }
+		);
+		res.json({ ok: true });
+	}
 );
 
 export default router;

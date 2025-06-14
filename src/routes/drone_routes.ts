@@ -2,19 +2,19 @@ import { Router } from 'express';
 import { ensureOwner } from '../middleware/isOwner.js';
 import { checkJwt } from '../middleware/session.js';
 import {
-  createDroneHandler,
-  deleteDroneHandler,
-  getDronesHandler,
-  getDroneByIdHandler,
-  updateDroneHandler,
-  addDroneReviewHandler,
-  getDronesByCategoryHandler,
-  getDronesByPriceRangeHandler,
-  addFavoriteHandler,
-  removeFavoriteHandler,
-  getFavoritesHandler,
-  getMyDronesHandler,
-  purchaseDroneHandler,
+	createDroneHandler,
+	deleteDroneHandler,
+	getDronesHandler,
+	getDroneByIdHandler,
+	updateDroneHandler,
+	addDroneReviewHandler,
+	getDronesByCategoryHandler,
+	getDronesByPriceRangeHandler,
+	addFavoriteHandler,
+	removeFavoriteHandler,
+	getFavoritesHandler,
+	getMyDronesHandler,
+	purchaseDroneHandler,
 } from '../controllers/drone_controller.js';
 import { uploadImages, validateMinImages } from '../middleware/upload.js';
 
@@ -213,12 +213,12 @@ router.get('/drones/:id',generalRateLimiter, getDroneByIdHandler);
  *         description: Error interno del servidor
  */
 router.post(
-  '/drones',
-  generalRateLimiter,
-  checkJwt,
-  uploadImages,
-  validateMinImages,
-  createDroneHandler
+	'/drones',
+	generalRateLimiter,
+	checkJwt,
+	uploadImages,
+	validateMinImages,
+	createDroneHandler
 );
 
 /**
@@ -237,13 +237,13 @@ router.post(
  *       404: { description: Dron no encontrado }
  */
 router.put(
-  '/drones/:id',
-  generalRateLimiter,
-  checkJwt,
-  ensureOwner,
-  uploadImages,
-  validateMinImages,
-  updateDroneHandler
+	'/drones/:id',
+	generalRateLimiter,
+	checkJwt,
+	ensureOwner,
+	uploadImages,
+	validateMinImages,
+	updateDroneHandler
 );
 
 /**
@@ -262,11 +262,11 @@ router.put(
  *       404: { description: Dron no encontrado }
  */
 router.delete(
-  '/drones/:id',
-  generalRateLimiter,
-  checkJwt,
-  ensureOwner,
-  deleteDroneHandler
+	'/drones/:id',
+	generalRateLimiter,
+	checkJwt,
+	ensureOwner,
+	deleteDroneHandler
 );
 
 /**
@@ -409,24 +409,24 @@ router.get('/drones/price',generalRateLimiter, getDronesByPriceRangeHandler);
  *       200: { description: Lista paginada de favoritos }
  */
 router.post(
-  '/users/:userId/favourites/:droneId',
-  generalRateLimiter,
-  checkJwt,            
-  addFavoriteHandler
+	'/users/:userId/favourites/:droneId',
+	generalRateLimiter,
+	checkJwt,            
+	addFavoriteHandler
 );
 
 router.delete(
-  '/users/:userId/favourites/:droneId',
-  generalRateLimiter,
-  checkJwt,            
-  removeFavoriteHandler
+	'/users/:userId/favourites/:droneId',
+	generalRateLimiter,
+	checkJwt,            
+	removeFavoriteHandler
 );
 
 router.get(
-  '/users/:userId/favourites',
-  generalRateLimiter,
-  checkJwt,            
-  getFavoritesHandler
+	'/users/:userId/favourites',
+	generalRateLimiter,
+	checkJwt,            
+	getFavoritesHandler
 );
 
 /**
@@ -448,10 +448,10 @@ router.get(
  *       200: { description: Llista d’anuncis }
  */
 router.get(
-  '/users/:userId/my-drones',
-  generalRateLimiter,
-  checkJwt,            
-  getMyDronesHandler
+	'/users/:userId/my-drones',
+	generalRateLimiter,
+	checkJwt,            
+	getMyDronesHandler
 );
 
 
@@ -497,10 +497,10 @@ router.get(
  *         description: Error intern del servidor
  */
 router.post(
-  '/drones/:id/purchase',
-  generalRateLimiter,
-  checkJwt,
-  purchaseDroneHandler
+	'/drones/:id/purchase',
+	generalRateLimiter,
+	checkJwt,
+	purchaseDroneHandler
 );
 
 /**
@@ -529,11 +529,11 @@ router.post(
  *         description: Error intern del servidor
  */
 router.put(
-  '/drones/:id/sold',
-  generalRateLimiter,
-  checkJwt,
-  ensureOwner,
-  purchaseDroneHandler
+	'/drones/:id/sold',
+	generalRateLimiter,
+	checkJwt,
+	ensureOwner,
+	purchaseDroneHandler
 );
 
 

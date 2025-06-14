@@ -1,16 +1,13 @@
 //src/routes/user_routes.ts
 import express from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 import {
-    saveMethodHandler,
-    createUserHandler,
-    getAllUsersHandler,
-    getUserByIdHandler,
-    updateUserHandler,
-    deleteUserHandler
+	saveMethodHandler,
+	getAllUsersHandler,
+	getUserByIdHandler,
+	updateUserHandler,
+	deleteUserHandler
 } from '../controllers/user_controller.js';
-import { checkJwt, verifyRole } from '../middleware/session.js';
+import { checkJwt } from '../middleware/session.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();

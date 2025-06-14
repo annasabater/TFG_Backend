@@ -2,23 +2,23 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-  userName : { type: String, required: true },
-  email    : { type: String, required: true, unique: true },
-  password : { type: String, required: true },
-  isDeleted: { type: Boolean, default: false },
-  role     : { type: String, enum: ['Administrador', 'Usuario', 'Empresa', 'Gobierno'], default: 'Usuario' },
+	userName : { type: String, required: true },
+	email    : { type: String, required: true, unique: true },
+	password : { type: String, required: true },
+	isDeleted: { type: Boolean, default: false },
+	role     : { type: String, enum: ['Administrador', 'Usuario', 'Empresa', 'Gobierno'], default: 'Usuario' },
 
-  favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drone', default: [] }],
-  following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] }], 
+	favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Drone', default: [] }],
+	following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] }], 
 });
 
   
 
 userSchema.methods.toJSON = function () {
-    const user = this.toObject();
-    delete user.password;
-    delete user.__v;
-    return user;
+	const user = this.toObject();
+	delete user.password;
+	delete user.__v;
+	return user;
 };
 
 export interface IUser {

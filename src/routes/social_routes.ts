@@ -2,17 +2,17 @@
 
 import express from 'express';
 import {
-  createPostHandler,
-  getFeedHandler,
-  getUserPostsHandler,
-  likePostHandler,
-  commentPostHandler,
-  getPostHandler,
-  getFollowingFeedHandler,
-  updatePostHandler,
-  deletePostHandler,
-  getUserProfileHandler,
-  deleteCommentHandler
+	createPostHandler,
+	getFeedHandler,
+	getUserPostsHandler,
+	likePostHandler,
+	commentPostHandler,
+	getPostHandler,
+	getFollowingFeedHandler,
+	updatePostHandler,
+	deletePostHandler,
+	getUserProfileHandler,
+	deleteCommentHandler
 } from '../controllers/social_controller.js';
 import { checkJwt } from '../middleware/session.js';
 import { upload } from '../middleware/upload.js';
@@ -113,11 +113,11 @@ router.get('/users/:userId/posts', generalRateLimiter, getUserPostsHandler);
  *         description: No autorizado
  */
 router.post(
-  '/posts',
-  generalRateLimiter,
-  checkJwt,
-  upload.single('file'),
-  createPostHandler
+	'/posts',
+	generalRateLimiter,
+	checkJwt,
+	upload.single('file'),
+	createPostHandler
 );
 
 /**
@@ -139,10 +139,10 @@ router.post(
  *         description: Número total de likes
  */
 router.post(
-  '/posts/:postId/like',
-  generalRateLimiter,
-  checkJwt,
-  likePostHandler
+	'/posts/:postId/like',
+	generalRateLimiter,
+	checkJwt,
+	likePostHandler
 );
 
 /**
@@ -176,10 +176,10 @@ router.post(
  *         description: Comentario creado
  */
 router.post(
-  '/posts/:postId/comments',
-  generalRateLimiter,
-  checkJwt,
-  commentPostHandler
+	'/posts/:postId/comments',
+	generalRateLimiter,
+	checkJwt,
+	commentPostHandler
 );
 router.delete('/posts/:postId/comments/:commentId', checkJwt, deleteCommentHandler);
 
@@ -206,10 +206,10 @@ router.delete('/posts/:postId/comments/:commentId', checkJwt, deleteCommentHandl
  *         description: Lista de publicaciones de seguidos
  */
 router.get(
-  '/posts/following',
-  generalRateLimiter,
-  checkJwt,
-  getFollowingFeedHandler
+	'/posts/following',
+	generalRateLimiter,
+	checkJwt,
+	getFollowingFeedHandler
 );
 
 /**
@@ -234,9 +234,9 @@ router.get(
  *         description: Error interno del servidor
  */
 router.get(
-  '/posts/:postId',
-  generalRateLimiter,
-  getPostHandler
+	'/posts/:postId',
+	generalRateLimiter,
+	getPostHandler
 );
 
 /**
@@ -289,26 +289,26 @@ router.post('/users/:userId/unfollow', checkJwt, unfollowUser);
 
 /** PUT /api/posts/:postId → editar descripción */
 router.put(
-  '/posts/:postId',
-  generalRateLimiter,
-  checkJwt,
-  updatePostHandler
+	'/posts/:postId',
+	generalRateLimiter,
+	checkJwt,
+	updatePostHandler
 );
 
 /** DELETE /api/posts/:postId → borrar post */
 router.delete(
-  '/posts/:postId',
-  generalRateLimiter,
-  checkJwt,
-  deletePostHandler
+	'/posts/:postId',
+	generalRateLimiter,
+	checkJwt,
+	deletePostHandler
 );
 
 /** GET /api/users/:userId/profile → perfil + posts + follow? */
 router.get(
-  '/users/:userId/profile',
-  generalRateLimiter,
-  checkJwt,
-  getUserProfileHandler
+	'/users/:userId/profile',
+	generalRateLimiter,
+	checkJwt,
+	getUserProfileHandler
 );
 
 /**

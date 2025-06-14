@@ -1,0 +1,39 @@
+name: Build, Lint and Analyze Backend
+
+on:
+  push:
+    branches: [ "main", "develop","chore/*" ]
+  pull_request:
+    branches: [ "main", "develop", "chore/*"  ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run ESLint
+        run: npx eslint src --ext .ts --max-warnings=0
+
+      - name: Build Docker image
+        run: docker build -t backend-app .
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          organization: joaquinaroca
+          projectKey:   JoaquinARoca_Skynet-Backend
+          projectBaseDir: .
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
