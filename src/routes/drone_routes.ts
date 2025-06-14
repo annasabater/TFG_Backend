@@ -15,6 +15,10 @@ import {
 	getFavoritesHandler,
 	getMyDronesHandler,
 	purchaseDroneHandler,
+	purchaseMultipleDronesHandler, // <--- añadido
+	getDroneConvertedPriceHandler,
+	getUserPurchaseHistoryHandler,
+	getUserSalesHistoryHandler,
 } from '../controllers/drone_controller.js';
 import { uploadImages, validateMinImages } from '../middleware/upload.js';
 
@@ -33,74 +37,99 @@ const router = Router();
  * @openapi
  * /api/drones:
  *   get:
- *     summary: Obtener todos los drones (filtros y paginación)
+ *     summary: Obtener todos los drones (conversión de divisa incluida)
  *     tags: [Drones]
  *     parameters:
  *       - in: query
+ *         name: currency
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [EUR, USD, GBP, JPY, CHF, CAD, AUD, CNY, HKD, NZD]
+ *         description: Divisa solicitada para el precio
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Página de resultados (empezando en 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Límite de resultados por página (máx 20)
+ *       - in: query
  *         name: minPrice
- *         schema: { type: number }
+ *         schema:
+ *           type: number
  *         description: Precio mínimo
  *       - in: query
  *         name: maxPrice
- *         schema: { type: number }
+ *         schema:
+ *           type: number
  *         description: Precio máximo
  *       - in: query
  *         name: name
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *         description: Búsqueda parcial por nombre (case-insensitive)
  *       - in: query
  *         name: model
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *         description: Modelo del dron
  *       - in: query
  *         name: category
- *         schema: { type: string, enum: [venta, alquiler] }
+ *         schema:
+ *           type: string
+ *           enum: [venta, alquiler]
  *         description: Categoría
  *       - in: query
  *         name: condition
- *         schema: { type: string, enum: [nuevo, usado] }
+ *         schema:
+ *           type: string
+ *           enum: [nuevo, usado]
  *         description: Condición
- *       - in: query
- *         name: minRating
- *         schema: { type: number, minimum: 1, maximum: 5 }
- *         description: Rating promedio mínimo (solo comentarios raíz)
- *       - in: query
- *         name: page
- *         schema: { type: integer, minimum: 1 }
- *         description: Página actual
- *       - in: query
- *         name: limit
- *         schema: { type: integer, minimum: 1, maximum: 20 }
- *         description: Elementos por página (máx. 20)
  *     responses:
  *       200:
- *         description: Lista filtrada de drones
+ *         description: Lista de drones con precio convertido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   model:
+ *                     type: string
+ *                   price:
+ *                     type: number
+ *                   currency:
+ *                     type: string
+ *                   averageRating:
+ *                     type: number
+ *       400:
+ *         description: currency es requerido o no soportado
  *
  *   post:
- *     summary: Crear un nuevo dron
- *     description: Crea un nuevo dron con imágenes (mínimo 1, máximo 4).
+ *     summary: Crear un nuevo dron (anuncio)
  *     tags: [Drones]
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - ownerId
- *               - model
- *               - price
- *               - category
- *               - condition
- *               - location
- *               - images
  *             properties:
- *               ownerId:
- *                 type: string
  *               model:
  *                 type: string
  *               price:
  *                 type: number
+ *               currency:
+ *                 type: string
+ *                 enum: [EUR, USD, GBP, JPY, CHF, CAD, AUD, CNY, HKD, NZD]
+ *                 description: Divisa del anuncio
  *               details:
  *                 type: string
  *               category:
@@ -117,13 +146,13 @@ const router = Router();
  *                 type: array
  *                 items:
  *                   type: string
- *                   format: binary
- *                 minItems: 1
- *                 maxItems: 4
- *           encoding:
- *             images:
- *               style: form
- *               explode: false
+ *             required:
+ *               - model
+ *               - price
+ *               - currency
+ *               - category
+ *               - condition
+ *               - location
  *     responses:
  *       201:
  *         description: Dron creado correctamente
@@ -232,9 +261,57 @@ router.post(
  *         name: id
  *         required: true
  *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               model:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               details:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [venta, alquiler]
+ *               condition:
+ *                 type: string
+ *                 enum: [nuevo, usado]
+ *               location:
+ *                 type: string
+ *               contact:
+ *                 type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 minItems: 1
+ *                 maxItems: 4
+ *               status:
+ *                 type: string
+ *                 enum: [actiu, venut]
+ *           encoding:
+ *             images:
+ *               style: form
+ *               explode: false
+ *           example:
+ *             model: "DJI Mini 3"
+ *             price: 500
+ *             details: "Dron en perfecto estado, poco uso."
+ *             category: "venta"
+ *             condition: "usado"
+ *             location: "Barcelona"
+ *             contact: "email@ejemplo.com"
+ *             status: "actiu"
  *     responses:
- *       200: { description: Dron actualizado correctamente }
- *       404: { description: Dron no encontrado }
+ *       200:
+ *         description: Dron actualizado correctamente
+ *       404:
+ *         description: Dron no encontrado
  */
 router.put(
 	'/drones/:id',
@@ -459,7 +536,7 @@ router.get(
  * @openapi
  * /api/drones/{id}/purchase:
  *   post:
- *     summary: Comprar un dron i marcar-lo com venut
+ *     summary: Comprar un dron (solo descuenta en la divisa indicada)
  *     tags: [Drones]
  *     parameters:
  *       - in: path
@@ -475,32 +552,70 @@ router.get(
  *           schema:
  *             type: object
  *             properties:
- *               address:
+ *               userId:
  *                 type: string
- *                 description: Adreça d'enviament
- *               phone:
+ *                 description: ID del usuario comprador
+ *               payWithCurrency:
  *                 type: string
- *                 description: Telèfon de contacte
- *           example:
- *             address: "C/ Exemple, 123, Ciutat"
- *             phone: "+34912345678"
+ *                 enum: [EUR, USD, GBP, JPY, CHF, CAD, AUD, CNY, HKD, NZD]
+ *                 description: Divisa con la que el usuario quiere pagar
+ *             required:
+ *               - userId
+ *               - payWithCurrency
  *     responses:
  *       200:
- *         description: Dron comprat i marcat com venut
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Drone'
+ *         description: Compra realizada correctamente
+ *       400:
+ *         description: Saldo insuficiente en la divisa seleccionada o error de parámetros
  *       404:
- *         description: Dron no trobat
- *       500:
- *         description: Error intern del servidor
+ *         description: Dron no encontrado
  */
 router.post(
 	'/drones/:id/purchase',
 	generalRateLimiter,
 	checkJwt,
 	purchaseDroneHandler
+);
+
+/**
+ * @openapi
+ * /api/drones/purchase-multiple:
+ *   post:
+ *     summary: Comprar múltiples drones
+ *     tags: [Drones]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               droneIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               payWithCurrency:
+ *                 type: string
+ *                 enum: [EUR, USD, GBP, JPY, CHF, CAD, AUD, CNY, HKD, NZD]
+ *             required:
+ *               - userId
+ *               - droneIds
+ *               - payWithCurrency
+ *     responses:
+ *       200:
+ *         description: Compra múltiple realizada correctamente
+ *       400:
+ *         description: Saldo insuficiente en la divisa seleccionada o error de parámetros
+ *       404:
+ *         description: Uno o más drones no encontrados
+ */
+router.post(
+	'/drones/purchase-multiple',
+	generalRateLimiter,
+	checkJwt,
+	purchaseMultipleDronesHandler
 );
 
 /**
@@ -536,5 +651,107 @@ router.put(
 	purchaseDroneHandler
 );
 
+router.get('/drones/:id/converted-price', getDroneConvertedPriceHandler);
+
+/**
+ * @openapi
+ * /api/drones/{id}/converted-price:
+ *   get:
+ *     summary: Obtener el dron con el precio convertido a la divisa solicitada
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del dron
+ *       - in: query
+ *         name: currency
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [EUR, USD, GBP, JPY, CHF, CAD, AUD, CNY, HKD, NZD]
+ *         description: Divisa solicitada para el precio
+ *     responses:
+ *       200:
+ *         description: Dron con precio convertido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 model:
+ *                   type: string
+ *                 price:
+ *                   type: number
+ *                 currency:
+ *                   type: string
+ *                 originalPrice:
+ *                   type: number
+ *                 originalCurrency:
+ *                   type: string
+ *       400:
+ *         description: Error de parámetros o divisa no soportada
+ *       404:
+ *         description: Dron no encontrado
+ */
+
+/**
+ * @openapi
+ * /api/users/{userId}/purchase-history:
+ *   get:
+ *     summary: Obtener historial de compras de drones de un usuario
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Historial de compras
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Error interno
+ */
+router.get('/users/:userId/purchase-history', getUserPurchaseHistoryHandler);
+
+/**
+ * @openapi
+ * /api/users/{userId}/sales-history:
+ *   get:
+ *     summary: Obtener historial de ventas de drones de un usuario
+ *     tags: [Drones]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Historial de ventas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Error interno
+ */
+router.get('/users/:userId/sales-history', getUserSalesHistoryHandler);
 
 export default router;
+// Mantener todas las rutas nuevas de la tienda: compra, compra múltiple, historial, conversión de precios, balance, etc.

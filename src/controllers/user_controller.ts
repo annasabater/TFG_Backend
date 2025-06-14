@@ -1,5 +1,5 @@
 // src/controllers/user_controller.ts
-import { saveMethod, createUser, updateUser, deleteUser } from '../service/user_service.js';
+import { saveMethod, createUser, updateUser, deleteUser, getUserBalance, addUserBalance } from '../service/user_service.js';
 import { JwtPayload } from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { verifyRole } from '../middleware/session.js';
@@ -97,6 +97,32 @@ export const deleteUserHandler = async (req: RequestExt, res: Response) => {
 		} else {
 			res.status(500).json({ message: String(error) });
 		}
+	}
+};
+
+export const getUserBalanceHandler = async (req: Request, res: Response) => {
+	try {
+		const { id } = req.params;
+		const balance = await getUserBalance(id);
+		res.status(200).json(balance);
+	} catch (error) {
+		const errMsg = error instanceof Error ? error.message : 'Error inesperado';
+		res.status(500).json({ message: errMsg });
+	}
+};
+
+export const addUserBalanceHandler = async (req: Request, res: Response) => {
+	try {
+		const { id } = req.params;
+		const { amount, currency } = req.body;
+		if (!amount || !currency) {
+			return res.status(400).json({ message: 'amount y currency son requeridos' });
+		}
+		const balance = await addUserBalance(id, amount, currency);
+		res.status(200).json(balance);
+	} catch (error) {
+		const errMsg = error instanceof Error ? error.message : 'Error inesperado';
+		res.status(500).json({ message: errMsg });
 	}
 };
 

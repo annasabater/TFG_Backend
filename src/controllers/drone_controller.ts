@@ -1,8 +1,7 @@
-
-// src/controllers/drone_controller.ts
 import { Request, Response } from 'express';
+import Drone from '../models/drone_models.js';
+import { getMyDrones } from '../service/drone_service.js';
 import mongoose from 'mongoose';
-import Drone, { IDrone } from '../models/drone_models.js';
 import {
 	createDrone,
 	getDrones,
@@ -13,337 +12,467 @@ import {
 	addFavorite,
 	removeFavorite,
 	getFavorites,
-	getMyDrones,
-	markDroneSold,
+	purchaseDroneWithBalance,
+	getDroneWithConvertedPrice,
+	purchaseMultipleDrones,
+	getUserPurchaseHistory,
+	getUserSalesHistory
 } from '../service/drone_service.js';
 import { getCommentsByDrone } from '../service/comment_service.js';
 
-/* ---------- Tipus auxiliars ---------- */
-
-interface MulterRequest extends Request {
-	files?: Express.Multer.File[];
+// Tipos auxiliares
+interface UploadedFile {
+	filename: string;
+}
+interface CommentDoc {
+	rating?: number;
+	parentCommentId?: string | null;
+	[key: string]: unknown;
 }
 
-interface DroneDoc {
-	_id: mongoose.Types.ObjectId;
-	model: string;
-	createdAt: Date;
-	averageRating?: number;
-	ratings: Array<{ userId: mongoose.Types.ObjectId; rating: number; comment: string }>;
-	toObject(): Record<string, unknown>;
-}
-
-interface DroneFilters {
-	q?: string;
-	category?: string;
-	condition?: string;
-	location?: string;
-	priceMin?: number;
-	priceMax?: number;
-	name?: string;
-	model?: string;
-}
-
-type DroneStatus = 'pending' | 'sold';
-
-/* ---------- Handlers ---------- */
-
-const createDroneHandler = async (req: Request, res: Response) => {
+export const createDroneHandler = async (req: Request, res: Response) => {
 	try {
-		/** Tipus exactes que espera createDrone */
-		type CreateDroneInput = Parameters<typeof createDrone>[0];
+		const {
+			_id,
+			status,
+			createdAt,
+			ratings,
+			isSold,
+			isService,
+			...droneData
+		} = req.body;
 
-		const droneData: CreateDroneInput = { ...(req.body as CreateDroneInput) };
+		// Validar y forzar stock
+		let stock = 1;
+		if (typeof droneData.stock !== 'undefined') {
+			stock = parseInt(droneData.stock);
+			if (isNaN(stock) || stock < 0) stock = 1;
+		}
+		droneData.stock = stock;
 
-		const files = (req as MulterRequest).files;
-		if (files?.length) {
-			droneData.images = files.map((f) => `http://localhost:9000/uploads/${f.filename}`);
+		// Manejar imágenes subidas
+		let images: string[] = [];
+		if ((req as unknown as { files?: UploadedFile[] }).files && Array.isArray((req as unknown as { files?: UploadedFile[] }).files)) {
+			images = ((req as unknown as { files: UploadedFile[] }).files).map((file: UploadedFile) => 'http://localhost:9000/uploads/' + file.filename);
+		}
+		if (images.length > 0) {
+			droneData.images = images;
 		}
 
 		const drone = await createDrone(droneData);
 		res.status(201).json(drone);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al crear el dron';
-		res.status(500).json({ message });
+	} catch (error: unknown) {
+		console.error('ERROR createDrone:', error);
+		res.status(500).json({ message: (error as Error).message || 'Error al crear el dron' });
 	}
 };
 
-const getDronesHandler = async (req: Request, res: Response) => {
+  
+
+// Get all drones with pagination
+export const getDronesHandler = async (req: Request, res: Response) => {
 	try {
-		const page = Number(req.query.page) || 1;
-		let limit = Number(req.query.limit) || 10;
+		const page  = parseInt(req.query.page as string) || 1;
+		let limit = parseInt(req.query.limit as string) || 10;
 		if (limit > 20) limit = 20;
 
-		const filters: DroneFilters = {
-			q: req.query.q as string | undefined,
-			category: req.query.category as string | undefined,
-			condition: req.query.condition as string | undefined,
-			location: req.query.location as string | undefined,
-			priceMin: req.query.minPrice ? Number(req.query.minPrice) : undefined,
-			priceMax: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
-			name: req.query.name as string | undefined,
-			model: req.query.model as string | undefined,
+		const filters: Record<string, unknown> = {
+			q: req.query.q,
+			category: req.query.category,
+			condition: req.query.condition,
+			location: req.query.location,
+			name: req.query.name,
+			model: req.query.model
 		};
-
+		// El filtro minRating se aplica después de la consulta
 		const minRating = req.query.minRating ? Number(req.query.minRating) : undefined;
-		let drones = await getDrones(page, limit, filters);
+		const minPrice = req.query.minPrice ? Number(req.query.minPrice) : undefined;
+		const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : undefined;
 
+		// Traer los drones solo con los filtros que no dependen del precio
+		let drones = await getDrones(undefined, undefined, filters);
+		// Filtrar por name y model (búsqueda parcial, case-insensitive)
 		if (filters.name) {
-			const needle = filters.name.toLowerCase();
-			drones = drones.filter((d: DroneDoc) => d.model.toLowerCase().includes(needle));
+			drones = drones.filter((d: { model?: string }) => typeof d.model === 'string' && d.model.toLowerCase().includes((filters.name as string).toLowerCase()));
 		}
 		if (filters.model) {
-			const needle = filters.model.toLowerCase();
-			drones = drones.filter((d: DroneDoc) => d.model.toLowerCase().includes(needle));
-		}
-		if (minRating !== undefined) {
-			drones = drones.filter((d: DroneDoc) => (d.averageRating ?? 0) >= minRating);
+			drones = drones.filter((d: { model?: string }) => typeof d.model === 'string' && d.model.toLowerCase().includes((filters.model as string).toLowerCase()));
 		}
 
-		drones.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+		// Calcular averageRating de comentarios raíz para cada dron
+		const dronesWithRatings = await Promise.all(
+			drones.map(async (d: { _id: mongoose.Types.ObjectId; toObject: () => Record<string, unknown> }) => {
+				const comments = await getCommentsByDrone(d._id.toString());
+				const rootRatings = (comments as unknown as CommentDoc[])
+					.filter((c: CommentDoc) => typeof c.rating === 'number' && (!c.parentCommentId || c.parentCommentId === null))
+					.map((c: CommentDoc) => c.rating as number);
+				let averageRating: number | null = null;
+				if (rootRatings.length > 0) {
+					averageRating = rootRatings.reduce((a: number, b: number) => a + b, 0) / rootRatings.length;
+					averageRating = Math.round(averageRating * 10) / 10;
+				}
+				return { ...d.toObject(), averageRating };
+			})
+		);
 
-		const result = drones.map((d: DroneDoc) => ({
-			...d.toObject(),
-			averageRating: d.averageRating,
-		}));
+		// --- NUEVO: conversión de divisa antes de filtrar por precio ---
+		const allowedCurrencies = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'NZD'];
+		const targetCurrency = req.query.currency as string;
+		if (!targetCurrency || !allowedCurrencies.includes(targetCurrency)) {
+			return res.status(400).json({ message: 'currency es requerido y debe ser una de: ' + allowedCurrencies.join(', ') });
+		}
+		// Convertir precios
+		const convertedDrones = await Promise.all(
+			dronesWithRatings.map(async (d: Record<string, unknown>) => {
+				let price = d.price as number;
+				let currency = d.currency as string;
+				if (d.currency !== targetCurrency) {
+					const { getExchangeRate } = await import('../utils/exchangeRates.js');
+					const rate = await getExchangeRate(currency, targetCurrency);
+					price = Math.round((price * rate) * 100) / 100;
+					currency = targetCurrency;
+				}
+				return {
+					...d,
+					price,
+					currency
+				};
+			})
+		);
 
-		res.status(200).json(result);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al obtener drones';
-		res.status(500).json({ message });
+		// Filtrar por minPrice y maxPrice usando el precio convertido
+		let filteredDrones = convertedDrones;
+		if (minPrice !== undefined) {
+			filteredDrones = filteredDrones.filter((d: Record<string, unknown>) => Number(d.price) >= minPrice);
+		}
+		if (maxPrice !== undefined) {
+			filteredDrones = filteredDrones.filter((d: Record<string, unknown>) => Number(d.price) <= maxPrice);
+		}
+
+		// Filtrar por minRating usando el nuevo averageRating
+		if (minRating) {
+			filteredDrones = filteredDrones.filter((d: Record<string, unknown>) => (d.averageRating as number || 0) >= minRating);
+		}
+		// Ordenar por fecha de creación descendente
+		filteredDrones = filteredDrones.sort((a: Record<string, unknown>, b: Record<string, unknown>) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
+
+		// Aplicar paginación después de todos los filtros
+		const start = (page - 1) * limit;
+		const end = start + limit;
+		const paginatedDrones = filteredDrones.slice(start, end);
+
+		res.status(200).json(paginatedDrones);
+	} catch (error: unknown) {
+		res.status(500).json({ message: (error as Error).message || 'Error al obtener los drones' });
 	}
 };
-
-/* --- Favoritos --- */
-
-const addFavoriteHandler = async (req: Request, res: Response) => {
+  
+/* --- Favorits --- */
+export const addFavoriteHandler = async (req: Request, res: Response) => {
 	try {
 		const favs = await addFavorite(req.params.userId, req.params.droneId);
 		res.status(200).json(favs);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al agregar favorito';
-		res.status(500).json({ message });
+	} catch (e: unknown) {
+		res.status(500).json({ message: (e as Error).message });
 	}
 };
-
-const removeFavoriteHandler = async (req: Request, res: Response) => {
+  
+export const removeFavoriteHandler = async (req: Request, res: Response) => {
 	try {
 		const favs = await removeFavorite(req.params.userId, req.params.droneId);
 		res.status(200).json(favs);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al eliminar favorito';
-		res.status(500).json({ message });
+	} catch (e: unknown) {
+		res.status(500).json({ message: (e as Error).message });
 	}
 };
-
-const getFavoritesHandler = async (req: Request, res: Response) => {
+  
+export const getFavoritesHandler = async (req: Request, res: Response) => {
 	try {
-		const page = Number(req.query.page) || 1;
-		const limit = Number(req.query.limit) || 10;
-		const favs = await getFavorites(req.params.userId, page, limit);
+		const page  = parseInt(req.query.page  as string) || 1;
+		const limit = parseInt(req.query.limit as string) || 10;
+		const favs  = await getFavorites(req.params.userId, page, limit);
 		res.status(200).json(favs);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al obtener favoritos';
-		res.status(500).json({ message });
+	} catch (e: unknown) {
+		res.status(500).json({ message: (e as Error).message });
 	}
 };
+  
 
-/* --- Lectura d’un dron --- */
-
-const getDroneByIdHandler = async (req: Request, res: Response) => {
+// Obtener un dron por ID
+export const getDroneByIdHandler = async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params;
-		const drone = mongoose.Types.ObjectId.isValid(id) ? await getDroneById(id) : null;
+		let drone: mongoose.Document | null = null;
+
+		if (mongoose.Types.ObjectId.isValid(id)) {
+			drone = await getDroneById(id);
+		}
 
 		if (!drone) {
 			return res.status(404).json({ message: 'Drone no encontrado' });
 		}
 
-		const comments = await getCommentsByDrone(drone._id.toString());
+		// Obtener comentarios anidados
+		const comments = await getCommentsByDrone((drone._id as mongoose.Types.ObjectId).toString());
+
 		res.status(200).json({ ...drone.toObject(), comments });
 	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al obtener el dron';
-		res.status(500).json({ message });
+		const errMsg = error instanceof Error ? error.message : "Error al obtener el dron";
+		res.status(500).json({ message: errMsg });
 	}
 };
 
-const getOwnerByDroneIdHandler = async (req: Request, res: Response) => {
+export const getOwnerByDroneIdHandler = async (req:Request,res: Response) => {
 	try {
 		const { id } = req.params;
-		const user = mongoose.Types.ObjectId.isValid(id) ? await getOwnerByDroneId(id) : null;
+		let user = null;
+
+		if (mongoose.Types.ObjectId.isValid(id)) {
+			user = await getOwnerByDroneId(id);
+		}
 
 		if (!user) {
 			return res.status(404).json({ message: 'Drone no encontrado' });
 		}
 
 		res.status(200).json(user);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al obtener el dron';
-		res.status(500).json({ message });
+	} catch (error: unknown) {
+		res.status(500).json({ message: error.message || "Error al obtener el dron" });
 	}
 };
 
-/* --- Actualització --- */
 
-const updateDroneHandler = async (req: Request, res: Response) => {
+// Actualizar un dron
+export const updateDroneHandler = async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params;
-		let drone = mongoose.Types.ObjectId.isValid(id) ? await getDroneById(id) : await Drone.findOne({ id });
+		let drone: mongoose.Document | null = null;
+
+		if (mongoose.Types.ObjectId.isValid(id)) {
+			drone = await getDroneById(id);
+		}
+
+		if (!drone) {
+			drone = await Drone.findOne({ id });
+		}
 
 		if (!drone) {
 			return res.status(404).json({ message: 'Dron no encontrado' });
 		}
 
-		const files = (req as MulterRequest).files;
-		if (files?.length) {
-			(req.body as Partial<IDrone>).images = files.map((f) => `/uploads/${f.filename}`);
+		// Manejar imágenes subidas
+		let images: string[] = [];
+		if ((req as { files?: UploadedFile[] }).files && Array.isArray((req as { files?: UploadedFile[] }).files)) {
+			images = ((req as { files: UploadedFile[] }).files).map((file: UploadedFile) => 'http://localhost:9000/uploads/' + file.filename);
+		}
+		const updateData: Record<string, unknown> = { ...req.body };
+		if (images.length > 0) {
+			updateData.images = images;
 		}
 
-		const updated = await updateDrone(drone._id.toString(), req.body as Partial<IDrone>);
-		res.status(200).json(updated);
+		// Validar y forzar stock
+		if (typeof updateData.stock !== 'undefined') {
+			let stock = parseInt(updateData.stock as string);
+			if (isNaN(stock) || stock < 0) stock = 1;
+			updateData.stock = stock;
+		}
+
+		// Parsear ratings si viene como string
+		if (typeof updateData.ratings === 'string') {
+			try {
+				updateData.ratings = JSON.parse(updateData.ratings as string);
+			} catch (err) {
+				updateData.ratings = [];
+			}
+		}
+
+		const updatedDrone = await updateDrone((drone._id as mongoose.Types.ObjectId).toString(), updateData);
+
+		res.status(200).json(updatedDrone);
 	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al actualizar el dron';
-		res.status(500).json({ message });
+		res.status(500).json({ message: (error as Error).message || "Error al actualizar el dron" });
 	}
 };
 
-/* --- Eliminació --- */
 
-const deleteDroneHandler = async (req: Request, res: Response) => {
+// Eliminar un dron
+export const deleteDroneHandler = async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params;
-		let drone = mongoose.Types.ObjectId.isValid(id) ? await getDroneById(id) : await Drone.findOne({ id });
+		let drone: mongoose.Document | null = null;
+
+		if (mongoose.Types.ObjectId.isValid(id)) {
+			drone = await getDroneById(id);
+		}
+
+		if (!drone) {
+			drone = await Drone.findOne({ id });
+		}
 
 		if (!drone) {
 			return res.status(404).json({ message: 'Dron no encontrado' });
 		}
 
-		await deleteDrone(drone._id.toString());
-		res.status(200).json({ message: 'Dron eliminado exitosamente' });
+		await deleteDrone((drone._id as mongoose.Types.ObjectId).toString());
+
+		res.status(200).json({ message: "Dron eliminado exitosamente" });
 	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al eliminar el dron';
-		res.status(500).json({ message });
+		res.status(500).json({ message: (error as Error).message || "Error al eliminar el dron" });
 	}
 };
 
-/* --- Llistats addicionals --- */
-
-const getDronesByCategoryHandler = async (req: Request, res: Response) => {
+// Obtener drones por categoría
+export const getDronesByCategoryHandler = async (req: Request, res: Response) => {
 	try {
 		const { category } = req.params;
-		if (!category) {
-			return res.status(400).json({ message: 'Debe proporcionar una categoría válida' });
+
+		if (!category || typeof category !== "string") {
+			return res.status(400).json({ message: "Debe proporcionar una categoría válida" });
 		}
 
 		const drones = await Drone.find({ category });
-		if (!drones.length) {
-			return res.status(404).json({ message: 'No hay drones en esta categoría' });
+
+		if (drones.length === 0) {
+			return res.status(404).json({ message: "No hay drones en esta categoría" });
 		}
+
 		res.status(200).json(drones);
 	} catch (error) {
-		const message =
-			error instanceof Error ? error.message : 'Error al obtener drones por categoría';
-		res.status(500).json({ message });
+		res.status(500).json({ message: (error as Error).message || "Error al obtener drones por categoría" });
 	}
 };
 
-const getDronesByPriceRangeHandler = async (req: Request, res: Response) => {
+
+
+// Obtener drones en un rango de precios
+export const getDronesByPriceRangeHandler = async (req: Request, res: Response) => {
 	try {
-		const min = Number(req.query.min);
-		const max = Number(req.query.max);
-		if (Number.isNaN(min) || Number.isNaN(max)) {
-			return res.status(400).json({ message: 'min y max deben ser números' });
+		const { min, max } = req.query;
+
+		const minPrice = Number(min);
+		const maxPrice = Number(max);
+
+		if (isNaN(minPrice) || isNaN(maxPrice)) {
+			return res.status(400).json({ message: "Parámetros inválidos, min y max deben ser números" });
 		}
 
-		const drones = await Drone.find({ price: { $gte: min, $lte: max } });
+		const drones = await Drone.find({ price: { $gte: minPrice, $lte: maxPrice } });
+
+		if (drones.length === 0) {
+			return res.status(200).json([]);
+		}
+
 		res.status(200).json(drones);
 	} catch (error) {
-		const message =
-			error instanceof Error
-				? error.message
-				: 'Error al obtener drones en el rango de precios';
-		res.status(500).json({ message });
+		res.status(500).json({ message: (error as Error).message || "Error al obtener drones en el rango de precios" });
 	}
 };
 
-/* --- Ressenyes --- */
 
-const addDroneReviewHandler = async (req: Request, res: Response) => {
+
+// Agregar una reseña a un dron
+export const addDroneReviewHandler = async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params;
-		const { userId, rating, comment } = req.body as {
-			userId: string;
-			rating: number;
-			comment: string;
-		};
+		const { userId, rating, comment } = req.body;
+		let drone: mongoose.Document & { ratings?: Array<{ userId: mongoose.Types.ObjectId; rating: number; comment: string }> } | null = null;
 
 		if (!mongoose.Types.ObjectId.isValid(userId)) {
-			return res.status(400).json({ message: 'userId no es válido' });
-		}
-		if (rating < 1 || rating > 5) {
-			return res.status(400).json({ message: 'El rating debe estar entre 1 y 5' });
+			return res.status(400).json({ message: "userId no es válido" });
 		}
 
-		let drone = mongoose.Types.ObjectId.isValid(id) ? await getDroneById(id) : await Drone.findOne({ id });
+		if (typeof rating !== "number" || rating < 1 || rating > 5) {
+			return res.status(400).json({ message: "El rating debe estar entre 1 y 5" });
+		}
+
+		if (mongoose.Types.ObjectId.isValid(id)) {
+			drone = await getDroneById(id);
+		}
+
 		if (!drone) {
-			return res.status(404).json({ message: 'Dron no encontrado' });
+			drone = await Drone.findOne({ id });
 		}
 
-		drone.ratings.push({
-			userId: new mongoose.Types.ObjectId(userId),
-			rating,
-			comment,
-		});
+		if (!drone) {
+			return res.status(404).json({ message: "Dron no encontrado" });
+		}
+
+		if (!drone.ratings) drone.ratings = [];
+		drone.ratings.push({ userId: new mongoose.Types.ObjectId(userId), rating, comment });
 		await drone.save();
 
-		res.status(200).json({ message: 'Reseña agregada exitosamente', drone });
+		res.status(200).json({ message: "Reseña agregada exitosamente", drone });
 	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al agregar reseña';
-		res.status(500).json({ message });
+		res.status(500).json({ message: (error as Error).message || "Error al agregar reseña" });
 	}
 };
 
-/* --- Els meus drones --- */
 
-const getMyDronesHandler = async (req: Request, res: Response) => {
+export const getMyDronesHandler = async (req: Request, res: Response) => {
 	try {
-		const statusParam = req.query.status as DroneStatus | undefined;
+		const statusParam = req.query.status as 'pending' | 'sold' | undefined;
 		const list = await getMyDrones(req.params.userId, statusParam);
 		res.status(200).json(list);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al obtener mis drones';
-		res.status(500).json({ message });
+	} catch (e: unknown) {
+		res.status(500).json({ message: (e as Error).message });
 	}
 };
 
-/* --- Compra --- */
-
-const purchaseDroneHandler = async (req: Request, res: Response) => {
+export const purchaseDroneHandler = async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params;
-		const updated = await markDroneSold(id);
-		res.status(200).json(updated);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Error al comprar dron';
-		res.status(500).json({ message });
+		const { userId, payWithCurrency } = req.body;
+		if (!userId || !payWithCurrency) {
+			return res.status(400).json({ message: 'userId y payWithCurrency son requeridos' });
+		}
+		const result = await purchaseDroneWithBalance(id, userId, payWithCurrency);
+		res.status(200).json(result);
+	} catch (err: unknown) {
+		res.status(400).json({ message: (err as Error).message });
 	}
 };
 
-/* ---------- Exportacions ---------- */
+export const purchaseMultipleDronesHandler = async (req: Request, res: Response) => {
+	try {
+		const { userId, items, payWithCurrency } = req.body;
+		if (!userId || !Array.isArray(items) || !payWithCurrency) {
+			return res.status(400).json({ message: 'userId, items y payWithCurrency son requeridos' });
+		}
+		const result = await purchaseMultipleDrones(userId, items, payWithCurrency);
+		res.status(200).json(result);
+	} catch (err: unknown) {
+		res.status(400).json({ message: (err as Error).message });
+	}
+};
 
-export {
-	createDroneHandler,
-	getDronesHandler,
-	getDroneByIdHandler,
-	updateDroneHandler,
-	deleteDroneHandler,
-	getDronesByCategoryHandler,
-	getDronesByPriceRangeHandler,
-	addDroneReviewHandler,
-	addFavoriteHandler,
-	removeFavoriteHandler,
-	getFavoritesHandler,
-	getMyDronesHandler,
-	purchaseDroneHandler,
-	getOwnerByDroneIdHandler,
+export const getDroneConvertedPriceHandler = async (req: Request, res: Response) => {
+	try {
+		const { id } = req.params;
+		const { currency } = req.query;
+		if (!currency) return res.status(400).json({ message: 'currency es requerido' });
+		const drone = await getDroneWithConvertedPrice(id, currency as string);
+		res.status(200).json(drone);
+	} catch (err: unknown) {
+		res.status(400).json({ message: (err as Error).message });
+	}
+};
+
+export const getUserPurchaseHistoryHandler = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+		const purchases = await getUserPurchaseHistory(userId);
+		res.status(200).json(purchases);
+	} catch (error: unknown) {
+		res.status(500).json({ message: (error as Error).message });
+	}
+};
+
+export const getUserSalesHistoryHandler = async (req: Request, res: Response) => {
+	try {
+		const { userId } = req.params;
+		const sales = await getUserSalesHistory(userId);
+		res.status(200).json(sales);
+	} catch (error: unknown) {
+		res.status(500).json({ message: (error as Error).message });
+	}
 };
