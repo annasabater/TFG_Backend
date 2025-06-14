@@ -1,6 +1,6 @@
 // src/routes/social_routes.ts
 
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import {
 	createPostHandler,
 	getFeedHandler,
@@ -12,12 +12,16 @@ import {
 	updatePostHandler,
 	deletePostHandler,
 	getUserProfileHandler,
-	deleteCommentHandler
+	deleteCommentHandler,
 } from '../controllers/social_controller.js';
 import { checkJwt } from '../middleware/session.js';
 import { upload } from '../middleware/upload.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
-import { followUser, unfollowUser, getMyFollowingHandler } from '../controllers/follow_controller.js';
+import {
+	followUser,
+	unfollowUser,
+	getMyFollowingHandler,
+} from '../controllers/follow_controller.js';
 
 const router = express.Router();
 
@@ -73,7 +77,11 @@ router.get('/feed', generalRateLimiter, getFeedHandler);
  *       200:
  *         description: Lista de posts del usuario
  */
-router.get('/users/:userId/posts', generalRateLimiter, getUserPostsHandler);
+router.get(
+	'/users/:userId/posts',
+	generalRateLimiter,
+	getUserPostsHandler
+);
 
 /**
  * @openapi
@@ -117,7 +125,7 @@ router.post(
 	generalRateLimiter,
 	checkJwt,
 	upload.single('file'),
-	createPostHandler
+	createPostHandler as unknown as RequestHandler
 );
 
 /**
@@ -142,7 +150,7 @@ router.post(
 	'/posts/:postId/like',
 	generalRateLimiter,
 	checkJwt,
-	likePostHandler
+	likePostHandler as unknown as RequestHandler
 );
 
 /**
@@ -179,10 +187,14 @@ router.post(
 	'/posts/:postId/comments',
 	generalRateLimiter,
 	checkJwt,
-	commentPostHandler
+	commentPostHandler as unknown as RequestHandler
 );
-router.delete('/posts/:postId/comments/:commentId', checkJwt, deleteCommentHandler);
 
+router.delete(
+	'/posts/:postId/comments/:commentId',
+	checkJwt,
+	deleteCommentHandler as unknown as RequestHandler
+);
 
 /**
  * @openapi
@@ -209,7 +221,7 @@ router.get(
 	'/posts/following',
 	generalRateLimiter,
 	checkJwt,
-	getFollowingFeedHandler
+	getFollowingFeedHandler as unknown as RequestHandler
 );
 
 /**
@@ -262,7 +274,11 @@ router.get(
  *       404:
  *         description: Usuario no encontrado
  */
-router.post('/users/:userId/follow', checkJwt, followUser);
+router.post(
+	'/users/:userId/follow',
+	checkJwt,
+	followUser as unknown as RequestHandler
+);
 
 /**
  * @openapi
@@ -285,14 +301,18 @@ router.post('/users/:userId/follow', checkJwt, followUser);
  *       404:
  *         description: Usuario no encontrado
  */
-router.post('/users/:userId/unfollow', checkJwt, unfollowUser);
+router.post(
+	'/users/:userId/unfollow',
+	checkJwt,
+	unfollowUser as unknown as RequestHandler
+);
 
 /** PUT /api/posts/:postId → editar descripción */
 router.put(
 	'/posts/:postId',
 	generalRateLimiter,
 	checkJwt,
-	updatePostHandler
+	updatePostHandler as unknown as RequestHandler
 );
 
 /** DELETE /api/posts/:postId → borrar post */
@@ -300,7 +320,7 @@ router.delete(
 	'/posts/:postId',
 	generalRateLimiter,
 	checkJwt,
-	deletePostHandler
+	deletePostHandler as unknown as RequestHandler
 );
 
 /** GET /api/users/:userId/profile → perfil + posts + follow? */
@@ -308,7 +328,7 @@ router.get(
 	'/users/:userId/profile',
 	generalRateLimiter,
 	checkJwt,
-	getUserProfileHandler
+	getUserProfileHandler as unknown as RequestHandler
 );
 
 /**
@@ -334,6 +354,10 @@ router.get(
  *       404:
  *         description: Usuario no encontrado
  */
-router.get('/users/me/following', checkJwt, getMyFollowingHandler);
+router.get(
+	'/users/me/following',
+	checkJwt,
+	getMyFollowingHandler as unknown as RequestHandler
+);
 
 export default router;
