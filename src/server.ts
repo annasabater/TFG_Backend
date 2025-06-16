@@ -7,6 +7,8 @@ import dotenv         from 'dotenv';
 import path           from 'path';
 import cookieParser   from 'cookie-parser';
 import { Server }     from 'socket.io';
+import session from 'express-session';
+
 
 import userRoutes     from './routes/user_routes.js';
 import forumRoutes    from './routes/forum_routes.js';
@@ -34,9 +36,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 // 2) Carga el .env desde la carpeta raíz (un nivel arriba de build/)
-dotenv.config({
-	path: path.resolve(__dirname, '../.env'),
-});
+dotenv.config({path: path.resolve(__dirname, '../.env'),});
 
 const app        = express();
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
@@ -45,13 +45,13 @@ const SERVER_URL = process.env.SERVER_URL || `http://localhost:${LOCAL_PORT}`;
 // Configuración de Swagger
 const path_constant = process.env.SWAGGER_PATH || './routes/*.js';
 const swaggerOptions = {
-	definition: {
-		openapi: '3.0.0',
-		info: {
-			title: 'API de Usuarios',
-			version: '1.0.0',
-			description: 'Documentación de la API de Usuarios'
-		},
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'API de Usuarios',
+      version: '1.0.0',
+      description: 'Documentación de la API de Usuarios'
+    },
 		tags: [
 			{
 				name: 'Users',
@@ -111,6 +111,8 @@ app.use(cookieParser());
 app.use(loggingHandler);
 app.use(corsHandler);
 
+app.use(session({ secret: process.env.SECRET_TOKEN || 'my-secret-token', resave: false,saveUninitialized: false,}));
+
 // Rutas REST
 app.use('/api', userRoutes);
 app.use('/api', forumRoutes);
@@ -122,6 +124,7 @@ app.use('/api', socialRoutes);
 app.use('/api', commentRoutes);
 app.use('/api', notificationRoutes);
 app.use('/uploads', express.static(UPLOAD_DIR));
+
 
 // Ruta de prueba
 app.get('/', (_req, res) => {

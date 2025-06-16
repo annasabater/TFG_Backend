@@ -21,11 +21,6 @@ npm install
 ```
 per ultim haurem de instalar bcrypt i jsonwebtoken i els seus tipats
 ```sh
-npm install bcryptjs 
-npm install jsonwebtoken
-```
-
-```sh
 npm install @types/bcryptjs 
 npm install @types/jsonwebtoken
 ```

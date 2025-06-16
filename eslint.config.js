@@ -46,9 +46,20 @@ export default [
       ]
     }
   },
+  {// Excepciones console.log para server.ts
+    files: ['src/server.ts'],
+    plugins: {
+      '@typescript-eslint': eslintPluginTs,
+      import: importPlugin
+    },
+    rules: {
+      'no-restricted-syntax': 'off',
+      'indent':'off'
+    }
+  },
   {
-    // Excepción console.log para logginghandler.ts y server.ts
-    files: ['src/middleware/loggingHandler.ts','src/server.ts'],
+    // Excepción console.log para logginghandler.ts
+    files: ['src/middleware/loggingHandler.ts'],
     plugins: {
       '@typescript-eslint': eslintPluginTs,
       import: importPlugin
@@ -66,7 +77,7 @@ export default [
   {
     files: ['src/**/session_*.ts', 'src/server.ts', 'src/models/drone_models.ts'],
     rules: {
-        '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
     }
   }
 ];

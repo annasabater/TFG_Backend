@@ -1,6 +1,8 @@
 import { Router } from 'express';
-import { registerHandler, loginHandler, logoutHandler,refreshTokenHandler } from '../controllers/auth_controller.js';
+import { registerHandler, loginHandler, logoutHandler,refreshTokenHandler, googleHandler } from '../controllers/auth_controller.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
+
+
 
 const router = Router();
 
@@ -187,5 +189,20 @@ router.post('/auth/logout',authRateLimiter, logoutHandler);
 router.post('/auth/refresh',authRateLimiter,refreshTokenHandler);
 
 
-router.post('/auth/refresh');
+// Iniciar login con Google
+/**
+ * @openapi
+ * /api/auth/google:
+ *   get:
+ *     summary: Iniciar sesión con Google
+ *     description: Redirige al usuario a la página de inicio de sesión de Google.
+ *     tags:
+ *       - Auth
+ *     responses:
+ *       302:
+ *         description: Redirección a Google para autenticación.
+ */
+router.post('/auth/google',googleHandler);
+
+
 export default router;
