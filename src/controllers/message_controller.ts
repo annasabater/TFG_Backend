@@ -67,7 +67,7 @@ const createDroneHandler = async (req: Request, res: Response) => {
 		const files = (req as MulterRequest).files;
 		let images: string[] | undefined;
 		if (files?.length) {
-			images = files.map((f) => `http://localhost:9000/uploads/${f.filename}`);
+			images = files.map((f) => `https://ea2-api.upc.edu/uploads/${f.filename}`);
 		}
 
 		// Ensure all required fields are present and of correct type

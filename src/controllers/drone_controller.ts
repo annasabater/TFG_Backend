@@ -53,7 +53,7 @@ export const createDroneHandler = async (req: Request, res: Response) => {
 		// Manejar imágenes subidas
 		let images: string[] = [];
 		if ((req as unknown as { files?: UploadedFile[] }).files && Array.isArray((req as unknown as { files?: UploadedFile[] }).files)) {
-			images = ((req as unknown as { files: UploadedFile[] }).files).map((file: UploadedFile) => 'http://localhost:9000/uploads/' + file.filename);
+			images = ((req as unknown as { files: UploadedFile[] }).files).map((file: UploadedFile) => 'https://ea2-api.upc.edu/uploads/' + file.filename);
 		}
 		if (images.length > 0) {
 			droneData.images = images;
@@ -264,7 +264,7 @@ export const updateDroneHandler = async (req: Request, res: Response) => {
 		// Manejar imágenes subidas
 		let images: string[] = [];
 		if ((req as { files?: UploadedFile[] }).files && Array.isArray((req as { files?: UploadedFile[] }).files)) {
-			images = ((req as { files: UploadedFile[] }).files).map((file: UploadedFile) => 'http://localhost:9000/uploads/' + file.filename);
+			images = ((req as { files: UploadedFile[] }).files).map((file: UploadedFile) => 'https://ea2-api.upc.edu/uploads/' + file.filename);
 		}
 		const updateData: Record<string, unknown> = { ...req.body };
 		if (images.length > 0) {
