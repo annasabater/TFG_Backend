@@ -1,4 +1,5 @@
 //src/controllers/session_controller.ts
+
 import { Response } from 'express';
 import {
 	createSession,
@@ -12,7 +13,6 @@ import {
 //POST /api/sessions
 export const createSessionHandler = async (req: any, res: Response) => {
 	try {
-		// obtenemos del body un array de escenarios
 		const scenario = req.body.scenario as any[];  
 		const mode     = req.body.mode     as string;
 

@@ -13,7 +13,7 @@ export const createEntryHandler = async (req: Request, res: Response) => {
 		}
 	}
 };
-// Get all forums with pagination
+
 export const getAllForumHandler = async (req: Request, res: Response) => {
 	try {
 		const page = parseInt(req.query.page as string) || 1;

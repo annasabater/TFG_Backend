@@ -1,11 +1,12 @@
 // src/controllers/follow_controller.ts
+
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import User from '../models/user_models.js';
 import { pushNotification } from '../service/notification_service.js';
 import { getFollowingUsers } from '../service/user_service.js';
 
-// 1. Definimos un tipo que incluye user.id en Request
+// Definimos un tipo que incluye user.id en Request
 interface AuthenticatedRequest extends Request {
 	user: {
 		id: string;

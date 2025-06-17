@@ -323,7 +323,7 @@ router.delete(
 	deletePostHandler as unknown as RequestHandler
 );
 
-/** GET /api/users/:userId/profile → perfil + posts + follow? */
+/** GET /api/users/:userId/profile */
 router.get(
 	'/users/:userId/profile',
 	generalRateLimiter,

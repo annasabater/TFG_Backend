@@ -15,7 +15,7 @@ import {
 	getFavoritesHandler,
 	getMyDronesHandler,
 	purchaseDroneHandler,
-	purchaseMultipleDronesHandler, // <--- añadido
+	purchaseMultipleDronesHandler, 
 	getDroneConvertedPriceHandler,
 	getUserPurchaseHistoryHandler,
 	getUserSalesHistoryHandler,

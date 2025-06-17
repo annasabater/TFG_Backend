@@ -35,65 +35,6 @@ const router = express.Router();
  */
 router.get('/main',generalRateLimiter,checkJwt, saveMethodHandler);
 
-//To delete this routes later
-// /**
-//  * @openapi
-//  * /api/users/signup:
-//  *   post:
-//  *     summary: Crea un nuevo usuario
-//  *     description: Añade los detalles de un nuevo usuario comprobando si existe un usuario primero con ese email.
-//  *     tags:
-//  *       - Users
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             type: object
-//  *             properties:
-//  *               userName:
-//  *                 type: string
-//  *               email:
-//  *                 type: string
-//  *               password:
-//  *                 type: string
-//  *                 items:
-//  *                   type: string
-//  *               role:
-//  *                 type: string
-//  *                 enum: [Administrador, Usuario, Empresa, Gobierno]
-//  *     responses:
-//  *       201:
-//  *         description: Usuario creado exitosamente
-//  */
-// router.post('/users/signup', createUserHandler);
-
-// /**
-//  * @openapi
-//  * /api/users/login:
-//  *   post:
-//  *     summary: Ruta para loguearse con un usuario
-//  *     description: Loguea al usuario.
-//  *     tags:
-//  *       - Users
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             type: object
-//  *             properties:
-//  *               email:
-//  *                 type: string
-//  *               password:
-//  *                 type: string
-//  *     responses:
-//  *       201:
-//  *         description: Usuario creado exitosamente
-//  */
-
-// router.post('/users/login', logInHandler);
-
 /**
  * @openapi
  * /api/users:

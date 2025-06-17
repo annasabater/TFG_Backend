@@ -20,7 +20,6 @@ import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-// ----------------- DRONES -----------------
 /**
  * @swagger
  * tags:
@@ -194,7 +193,6 @@ router.get('/drones/category/:category', generalRateLimiter, getDronesByCategory
  */
 router.get('/drones/price', generalRateLimiter, getDronesByPriceRangeHandler);
 
-// ----------------- MESSAGES -----------------
 /**
  * @swagger
  * tags:
@@ -270,7 +268,6 @@ router.get('/messages/:userId/:contactId', generalRateLimiter, getMessagesHandle
  */
 router.get('/conversations/:userId', generalRateLimiter, getConversationsHandler);
 
-// ----------------- ORDERS -----------------
 /**
  * @swagger
  * tags:
@@ -319,7 +316,7 @@ router.post('/orders', generalRateLimiter, createOrderHandler);
  */
 router.get('/orders/:userId', generalRateLimiter, getUserOrdersHandler);
 
-// ----------------- PAYMENTS -----------------
+
 /**
  * @swagger
  * tags:

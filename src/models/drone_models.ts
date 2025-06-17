@@ -23,7 +23,7 @@ export interface IDrone {
     ratings?: IRating[];
     currency: 'EUR' | 'USD' | 'GBP' | 'JPY' | 'CHF' | 'CAD' | 'AUD' | 'CNY' | 'HKD' | 'NZD';
     buyerId?: string;
-    stock?: number; // <--- Añadido para compras múltiples
+    stock?: number; //para compras múltiples
   }
   
 
@@ -42,10 +42,8 @@ const droneSchema = new mongoose.Schema({
 	ratings  : [ratingSchema],
 	currency : { type: String, enum: ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'NZD'], required: true, default: 'EUR' },
 	buyerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-	stock: { type: Number, default: 1, min: 0 } // <--- Añadido para compras múltiples
+	stock: { type: Number, default: 1, min: 0 } //
 });
-
-// Definir el virtual después de crear el schema
 
 droneSchema.virtual('averageRating').get(function (this: any) {
 	if (!this.ratings || this.ratings.length === 0) return null;
@@ -54,7 +52,6 @@ droneSchema.virtual('averageRating').get(function (this: any) {
 	return ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length;
 });
 
-// Modelos
 const Drone = mongoose.model('Drone', droneSchema);
 
 export default Drone;

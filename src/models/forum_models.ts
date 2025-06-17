@@ -1,4 +1,5 @@
 //src/models/forum_models.ts
+
 import mongoose from 'mongoose';
 
 const forumSchema = new mongoose.Schema({

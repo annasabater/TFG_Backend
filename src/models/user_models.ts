@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema({
 	balance: {
 		type: Map,
 		of: Number,
-		default: undefined // Usar undefined para evitar problemas con {}
+		default: undefined 
 	},
 
 	purchases: [{

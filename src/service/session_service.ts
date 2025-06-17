@@ -1,4 +1,5 @@
 // src/service/session_service.ts
+
 import mongoose from 'mongoose';
 import { Session } from '../models/session_models.js';
 import User from '../models/user_models.js';
@@ -50,15 +51,15 @@ export const acceptPlayers = async (sessionId: string, userIds: string[]) => {
 	return sess.save();
 };
 
-// Obtiene el escenario, acepta rawId = ObjectId o entero como índice (1 → primer documento)
+// Obtiene el escenario, acepta rawId = ObjectId (1)
 export const getScenario = async (rawId: string) => {
 	let doc: any = null;
 
 	if (mongoose.isValidObjectId(rawId)) {
 		// Si es un ObjectId válido, buscar por _id
 		doc = await Session.findById(rawId).select('scenario').lean();
+		
 	} else if (!isNaN(Number(rawId))) {
-		// Si es numérico, lo tratamos como índice 1-based
 		const idx = Math.max(0, Number(rawId) - 1);
 		const arr = await Session.find()
 			.skip(idx)

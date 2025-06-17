@@ -1,5 +1,5 @@
 // src/server.ts
-// trigger actions
+
 import express        from 'express';
 import http           from 'http';
 import mongoose       from 'mongoose';
@@ -7,8 +7,6 @@ import dotenv         from 'dotenv';
 import path           from 'path';
 import cookieParser   from 'cookie-parser';
 import { Server }     from 'socket.io';
-import session from 'express-session';
-
 
 import userRoutes     from './routes/user_routes.js';
 import forumRoutes    from './routes/forum_routes.js';
@@ -35,8 +33,10 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// 2) Carga el .env desde la carpeta raíz (un nivel arriba de build/)
-dotenv.config({path: path.resolve(__dirname, '../.env'),});
+// Carga el .env desde la carpeta raíz 
+dotenv.config({
+	path: path.resolve(__dirname, '../.env'),
+});
 
 const app        = express();
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
@@ -45,13 +45,13 @@ const SERVER_URL = process.env.SERVER_URL || `http://localhost:${LOCAL_PORT}`;
 // Configuración de Swagger
 const path_constant = process.env.SWAGGER_PATH || './routes/*.js';
 const swaggerOptions = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'API de Usuarios',
-      version: '1.0.0',
-      description: 'Documentación de la API de Usuarios'
-    },
+	definition: {
+		openapi: '3.0.0',
+		info: {
+			title: 'API de Usuarios',
+			version: '1.0.0',
+			description: 'Documentación de la API de Usuarios'
+		},
 		tags: [
 			{
 				name: 'Users',
@@ -111,8 +111,6 @@ app.use(cookieParser());
 app.use(loggingHandler);
 app.use(corsHandler);
 
-app.use(session({ secret: process.env.SECRET_TOKEN || 'my-secret-token', resave: false,saveUninitialized: false,}));
-
 // Rutas REST
 app.use('/api', userRoutes);
 app.use('/api', forumRoutes);
@@ -125,7 +123,6 @@ app.use('/api', commentRoutes);
 app.use('/api', notificationRoutes);
 app.use('/uploads', express.static(UPLOAD_DIR));
 
-
 // Ruta de prueba
 app.get('/', (_req, res) => {
 	res.send('Welcome to my API');
@@ -136,8 +133,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ExampleDa
 	.then(() => console.log('Connected to DB'))
 	.catch(error => console.error('DB Connection Error:', error));
 
-// --- Configuración de Socket.IO ---
-// Creamos servidor HTTP a partir de Express
+// Configuración de Socket.IO
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
 
@@ -156,7 +152,6 @@ const competitorEmails = new Set([
 	'dron_rojo1@upc.edu',
 	'dron_amarillo1@upc.edu',
 ]);
-
 
 jocsNsp.use(async (socket, next) => {
 	// Si viene como espectador, saltamos autenticación
@@ -325,7 +320,7 @@ jocsNsp.on('connection', socket => {
 // Namespace del profesor (/professor)
 const profNsp = io.of('/professor');
 
-// Autenticación por clave ADMIN_KEY
+// Autenticación ADMIN_KEY
 profNsp.use((socket, next) => {
 	const key = socket.handshake.auth?.key;
 	if (key === process.env.ADMIN_KEY) return next();
@@ -343,7 +338,7 @@ profNsp.on('connection', socket => {
 	});
 });
 
-// --- Namespace de chat entre usuarios ---
+// Namespace de chat entre usuarios 
 export const chatNsp = io.of('/chat');
 
 chatNsp.use(async (socket, next) => {

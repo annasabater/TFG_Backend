@@ -4,8 +4,6 @@ import Drone, { IDrone }   from '../models/drone_models.js';
 import User                from '../models/user_models.js';
 import { getExchangeRate } from '../utils/exchangeRates.js';
 
-/* ---------- Tipus auxiliars ---------- */
-
 interface DroneFilters {
 	q?: string;
 	category?: string;
@@ -25,14 +23,11 @@ interface UserWithFav extends mongoose.Document {
 	favorites?: Types.ObjectId[];
 }
 
-// Tipos auxiliars per a compres múltiples
 interface DroneToUpdate {
 	drone: mongoose.Document;
 	quantity: number;
 	price: number;
 }
-
-/* ---------- Helpers ---------- */
 
 const validateUserNotDeleted = async (userId: string): Promise<void> => {
 	const user = await User.findById(userId);
@@ -65,8 +60,6 @@ const buildQuery = (filters: DroneFilters): MongoQuery => {
 	return query;
 };
 
-/* ---------- CRUD principal ---------- */
-
 export const createDrone = async (droneData: IDrone) => {
 	await validateUserNotDeleted(droneData.ownerId);
 	if (!droneData.location) throw new Error('La ubicació és obligatòria');
@@ -98,7 +91,6 @@ export const updateDrone = (id: string, data: Partial<IDrone>) =>
 
 export const deleteDrone = (id: string) => Drone.findByIdAndDelete(id);
 
-/* ---------- Llistes curtes ---------- */
 
 export const getDronesByCategory   = (category: string) =>
 	Drone.find({ category });
@@ -106,7 +98,6 @@ export const getDronesByCategory   = (category: string) =>
 export const getDronesByPriceRange = (min: number, max: number) =>
 	Drone.find({ price: { $gte: min, $lte: max } });
 
-/* ---------- Reviews ---------- */
 
 export const addReviewToDrone = async (
 	droneId: string,
@@ -123,8 +114,6 @@ export const addReviewToDrone = async (
 	await drone.save();
 	return drone;
 };
-
-/* ---------- Favorits ---------- */
 
 export const addFavorite = async (userId: string, droneId: string) => {
 	await validateUserNotDeleted(userId);
@@ -168,12 +157,9 @@ export const getFavorites = async (userId: string, page = 1, limit = 10) => {
 	return user?.favorites ?? [];
 };
 
-/* ---------- Estat de venda ---------- */
-
 export const markDroneSold = async (droneId: string) =>
 	await Drone.findByIdAndUpdate(droneId, { status: 'venut' }, { new: true });
   
-/* --- Llistar anuncis propis --- */
 export const getMyDrones = async (ownerId: string, status?: 'pending' | 'sold') => {
 	const query: Record<string, unknown> = { ownerId };
 	if (status === 'pending') query.status = 'actiu';
@@ -284,6 +270,7 @@ export const purchaseMultipleDrones = async (
 		if (ownerId.toString() === userId.toString()) throw new Error('No puedes comprar tu propio dron');
 		if (droneDoc.get('status') === 'venut') throw new Error(`Dron ${droneDoc.get('model')} ya vendido`);
 		if (typeof droneDoc.get('stock') !== 'number' || droneDoc.get('stock') < item.quantity) throw new Error(`Stock insuficiente para el dron ${droneDoc.get('model')}`);
+		
 		// Calcular precio en la divisa seleccionada
 		let price = droneDoc.get('price');
 		if (droneDoc.get('currency') !== payWithCurrency) {
@@ -308,9 +295,11 @@ export const purchaseMultipleDrones = async (
 	}
 	const userBalance = user.balance.get(payWithCurrency) || 0;
 	if (userBalance < total) throw new Error('Saldo insuficiente en la divisa seleccionada');
+	
 	// Descontar saldo
 	user.balance.set(payWithCurrency, userBalance - total);
 	await user.save();
+	
 	// Actualizar stock y marcar vendidos si corresponde
 	for (const { drone, quantity } of dronesToUpdate) {
 		const stock = drone.get('stock');

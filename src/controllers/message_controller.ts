@@ -1,4 +1,5 @@
 // src/controllers/drone_controller.ts
+
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Drone from '../models/drone_models.js';
@@ -19,14 +20,10 @@ import { getCommentsByDrone, } from '../service/comment_service.js';
 import { createOrder, getConversations, getMessages, getUserOrders, getUserPayments, processPayment, sendMessage } from '../service/message_service.js';
 import { chatNsp } from '../server.js';
 
-/* ---------- Tipus auxiliars ---------- */
-
-/** Request amb arxius de Multer ja tipats */
 interface MulterRequest extends Request {
 	files?: Express.Multer.File[];
 }
 
-/** Camps bàsics que fem servir del document de Dron */
 interface DroneDoc {
 	_id: mongoose.Types.ObjectId;
 	model: string;
@@ -50,8 +47,6 @@ interface DroneFilters {
 
 type DroneStatus = 'pending' | 'sold';
 
-/* ---------- Handlers ---------- */
-
 const createDroneHandler = async (req: Request, res: Response) => {
 	try {
 		const {
@@ -70,7 +65,6 @@ const createDroneHandler = async (req: Request, res: Response) => {
 			images = files.map((f) => `https://ea2-api.upc.edu/uploads/${f.filename}`);
 		}
 
-		// Ensure all required fields are present and of correct type
 		if (
 			typeof ownerId !== 'string' ||
 			typeof model !== 'string' ||
@@ -82,7 +76,6 @@ const createDroneHandler = async (req: Request, res: Response) => {
 			return res.status(400).json({ message: 'Faltan campos obligatorios o son inválidos' });
 		}
 
-		// Ensure category is either "venta" or "alquiler"
 		const validCategories = ["venta", "alquiler"];
 		if (!validCategories.includes(category)) {
 			return res.status(400).json({ message: 'La categoría debe ser "venta" o "alquiler"' });
@@ -96,8 +89,8 @@ const createDroneHandler = async (req: Request, res: Response) => {
 			description,
 			location,
 			images,
-			condition: req.body.condition, // Add the required 'condition' property
-			currency: req.body.currency ?? 'EUR', // Add the required 'currency' property, default to 'EUR'
+			condition: req.body.condition, 
+			currency: req.body.currency ?? 'EUR', 
 			...rest,
 		};
 
@@ -160,8 +153,6 @@ const getDronesHandler = async (req: Request, res: Response) => {
 	}
 };
 
-/* --- Favoritos --- */
-
 const addFavoriteHandler = async (req: Request, res: Response) => {
 	try {
 		const favs = await addFavorite(req.params.userId, req.params.droneId);
@@ -196,8 +187,6 @@ const getFavoritesHandler = async (req: Request, res: Response) => {
 		res.status(500).json({ message });
 	}
 };
-
-/* --- Lectura d’un dron --- */
 
 const getDroneByIdHandler = async (req: Request, res: Response) => {
 	try {
@@ -237,8 +226,6 @@ const getOwnerByDroneIdHandler = async (req: Request, res: Response) => {
 	}
 };
 
-/* --- Actualització --- */
-
 const updateDroneHandler = async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params;
@@ -265,7 +252,6 @@ const updateDroneHandler = async (req: Request, res: Response) => {
 	}
 };
 
-/* --- Eliminació --- */
 
 const deleteDroneHandler = async (req: Request, res: Response) => {
 	try {
@@ -286,8 +272,6 @@ const deleteDroneHandler = async (req: Request, res: Response) => {
 		res.status(500).json({ message });
 	}
 };
-
-/* --- Llistats addicionals --- */
 
 const getDronesByCategoryHandler = async (req: Request, res: Response) => {
 	try {
@@ -335,8 +319,6 @@ const getDronesByPriceRangeHandler = async (req: Request, res: Response) => {
 	}
 };
 
-/* --- Ressenyes --- */
-
 const addDroneReviewHandler = async (req: Request, res: Response) => {
 	try {
 		const { id } = req.params;
@@ -378,7 +360,6 @@ const addDroneReviewHandler = async (req: Request, res: Response) => {
 	}
 };
 
-/* --- Els meus drones --- */
 
 const getMyDronesHandler = async (req: Request, res: Response) => {
 	try {
@@ -392,7 +373,6 @@ const getMyDronesHandler = async (req: Request, res: Response) => {
 	}
 };
 
-/* --- Compra --- */
 
 const purchaseDroneHandler = async (req: Request, res: Response) => {
 	try {
@@ -494,7 +474,6 @@ export async function getUserPaymentsHandler(req: Request, res: Response) {
 		return res.status(500).json({ message });
 	}
 }
-/* ---------- Exports ---------- */
 
 export {
 	createDroneHandler,

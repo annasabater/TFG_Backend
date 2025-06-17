@@ -55,7 +55,7 @@ export function validateMinImages(
 	res: Response,
 	next: NextFunction
 ) {
-	// multer añade `req.files` como `Express.Multer.File[] | undefined`
+
 	const files = req.files as Express.Multer.File[] | undefined;
 	if (!files || files.length < 1) {
 		return res.status(400).json({ message: 'Debes subir al menos 1 imagen.' });

@@ -1,4 +1,5 @@
 //src/utils/bcryptHandler.ts
+
 import {hash,compare} from 'bcryptjs';
 
 const encrypt = async (password:string) => {

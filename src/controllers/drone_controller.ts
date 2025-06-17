@@ -115,7 +115,7 @@ export const getDronesHandler = async (req: Request, res: Response) => {
 			})
 		);
 
-		// --- NUEVO: conversión de divisa antes de filtrar por precio ---
+		// Conversión de divisa antes de filtrar por precio 
 		const allowedCurrencies = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'NZD'];
 		const targetCurrency = req.query.currency as string;
 		if (!targetCurrency || !allowedCurrencies.includes(targetCurrency)) {
@@ -167,7 +167,7 @@ export const getDronesHandler = async (req: Request, res: Response) => {
 	}
 };
   
-/* --- Favorits --- */
+// Favoritos
 export const addFavoriteHandler = async (req: Request, res: Response) => {
 	try {
 		const favs = await addFavorite(req.params.userId, req.params.droneId);
@@ -343,8 +343,6 @@ export const getDronesByCategoryHandler = async (req: Request, res: Response) =>
 	}
 };
 
-
-
 // Obtener drones en un rango de precios
 export const getDronesByPriceRangeHandler = async (req: Request, res: Response) => {
 	try {
@@ -368,7 +366,6 @@ export const getDronesByPriceRangeHandler = async (req: Request, res: Response) 
 		res.status(500).json({ message: (error as Error).message || "Error al obtener drones en el rango de precios" });
 	}
 };
-
 
 
 // Agregar una reseña a un dron

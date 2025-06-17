@@ -2,8 +2,6 @@ import { Router } from 'express';
 import { registerHandler, loginHandler, logoutHandler,refreshTokenHandler, googleHandler } from '../controllers/auth_controller.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 
-
-
 const router = Router();
 
 /**
@@ -203,6 +201,5 @@ router.post('/auth/refresh',authRateLimiter,refreshTokenHandler);
  *         description: Redirección a Google para autenticación.
  */
 router.post('/auth/google',googleHandler);
-
 
 export default router;

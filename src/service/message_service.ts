@@ -1,10 +1,9 @@
 // src/service/message_service.ts
+
 import mongoose from 'mongoose';
 import Drone, { IDrone } from '../models/drone_models.js';
 import User from '../models/user_models.js';
 import { Message, Order, Payment } from '../models/message_models.js';
-
-/* ---------- Tipus auxiliars ---------- */
 
 interface DroneFilters {
 	min?: number;
@@ -28,8 +27,6 @@ type DroneLean = Omit<IDrone, 'ratings'> & {
 interface SoftDeletable {
 	isDeleted?: boolean;
 }
-
-/* ---------- Serveis DRON ---------- */
 
 export async function createDrone(droneData: IDrone) {
 	const drone = new Drone(droneData);
@@ -104,8 +101,6 @@ export async function addReviewToDrone(
 	return drone;
 }
 
-/* ---------- Serveis MISSATGERIA ---------- */
-
 async function validateUserNotDeleted(userId: string) {
 	const user = await User.findById(userId);
 	if (!user || (user as SoftDeletable).isDeleted) {
@@ -132,8 +127,6 @@ export function getMessages(userId: string, contactId: string) {
 		],
 	}).sort({ createdAt: 1 });
 }
-
-/* ---------- Comandes i pagaments ---------- */
 
 export async function createOrder(
 	droneId: string,
@@ -173,8 +166,6 @@ export function processPayment(orderId: string, userId: string, amount: number) 
 export function getUserPayments(userId: string) {
 	return Payment.find({ userId });
 }
-
-/* ---------- Converses ---------- */
 
 export function getConversations(userId: string) {
 	const oid = new mongoose.Types.ObjectId(userId);

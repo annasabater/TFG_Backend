@@ -15,16 +15,10 @@ import {
 } from '../service/social_service.js';
 import User from '../models/user_models.js';
 
-/**
- * Request tipado con user.id inyectado por tu middleware de sesión.
- */
 type ReqWithUser = Request & {
 	user: { id: string };
 };
 
-/**
- * Para el endpoint de subida de fichero, añadimos también `file`.
- */
 type ReqWithUserAndFile = ReqWithUser & {
 	file?: Express.Multer.File;
 };

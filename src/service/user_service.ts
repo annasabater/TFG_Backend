@@ -1,4 +1,5 @@
 // src/services/user_service.ts
+
 import User, { IUser } from '../models/user_models.js';
 import { encrypt } from '../utils/bcryptHandler.js';
 
@@ -49,6 +50,7 @@ export const getFollowingUsers = async (userId: string, page = 1, limit = 10) =>
 export const getUserBalance = async (userId: string) => {
 	const user = await User.findById(userId);
 	if (!user) throw new Error('Usuario no encontrado');
+
 	// Convertir Map a objeto plano para el frontend
 	return user.balance ? Object.fromEntries(user.balance) : {};
 };
@@ -62,20 +64,3 @@ export const addUserBalance = async (userId: string, amount: number, currency: s
 	await user.save();
 	return Object.fromEntries(user.balance);
 };
-/*
-export const logIn = async (email: string, password: string) => { 
-    try {
-        // Buscar al usuario en la base de datos
-        const user = await User.findOne({ email, isDeleted: false });
-        if (!user) {
-            throw new Error('Usuario no encontrado o eliminado');
-        }
-        if (!isMatch) {
-            throw new Error('Contraseña incorrecta');
-        }
-
-        return user; // Credenciales correctas, devuelve el usuario
-    } catch (error: any) {
-        throw new Error(error.message || 'Error al iniciar sesión');
-    }
-};*/

@@ -18,7 +18,7 @@ const commentSchema = new mongoose.Schema({
 	createdAt: { type: Date, default: Date.now }
 });
 
-// Validación: solo comentarios raíz pueden tener rating
+// solo comentarios raíz pueden tener rating
 commentSchema.pre('save', function (next) {
 	if (this.parentCommentId && this.rating) {
 		return next(new Error('Solo los comentarios raíz pueden tener rating.'));
