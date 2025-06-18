@@ -42,3 +42,11 @@ export const getCommentsByDrone = async (
 	}
 	return Promise.all(roots.map(attachReplies));
 };
+
+export const updateComment = async (id: string, data: Partial<IComment>) => {
+	return Comment.findByIdAndUpdate(id, data, { new: true }).lean();
+};
+
+export const softDeleteComment = async (id: string) => {
+	return Comment.findByIdAndUpdate(id, { isDeleted: true }, { new: true }).lean();
+};

@@ -39,11 +39,11 @@ const loginHandler = async ({ body }: Request, res: Response) => {
 	}
 
 	res.cookie('refreshToken', resultUser.refreshToken, {
-		maxAge: 365 * 24 * 60 * 60 * 1000,
+		maxAge: 365 * 24 * 60 * 60 * 1000, //año a ms
 		httpOnly: true
 	});
 	res.cookie('accessToken', resultUser.accesstoken, {
-		maxAge: 15 * 60 * 1000,
+		maxAge: 30 * 60 * 1000, //30 min a ms
 		httpOnly: true
 	});
 

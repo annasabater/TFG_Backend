@@ -39,7 +39,7 @@ router.get('/main',generalRateLimiter,checkJwt, saveMethodHandler);
  * @openapi
  * /api/users:
  *   get:
- *     summary: Obtiene todos los usuarios
+ *     summary: Obtiene todos los usuarios con filtros y paginación
  *     tags:
  *       - Users
  *     parameters:
@@ -47,13 +47,42 @@ router.get('/main',generalRateLimiter,checkJwt, saveMethodHandler);
  *         name: page
  *         schema:
  *           type: integer
+ *         description: Página actual
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
+ *         description: Número de resultados por página
+ *       - in: query
+ *         name: userName
+ *         schema:
+ *           type: string
+ *         description: Filtrar por nombre de usuario (parcial)
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Filtrar por email (parcial)
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [Administrador, Usuario, Empresa, Gobierno]
+ *         description: Filtrar por rol exacto
  *     responses:
  *       200:
- *         description: Éxito
+ *         description: Lista de usuarios con paginación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 users:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *                 pages:
+ *                   type: integer
  */
 router.get('/users',generalRateLimiter, checkJwt, getAllUsersHandler);
 

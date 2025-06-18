@@ -8,17 +8,26 @@ export const createEntry = async (forumData: IForum) => {
 // Get all forums with pagination
 export const getAllForum = async (page: number, limit: number) => {
 	const skip = (page - 1) * limit;
-	return await Forum.find().skip(skip).limit(limit);
+	const total = await Forum.countDocuments({ isDeleted: false });
+	const forums = await Forum.find({ isDeleted: false }).skip(skip).limit(limit).lean();
+	const pages = Math.ceil(total / limit);
+	return { forums, pages };
 };
+
 
 export const getEntryById = async (id: string) => {
 	return await Forum.findById(id);
 };
 
 export const updateEntry = async (id: string, updateData: Partial<IForum>) => {
-	return await Forum.updateOne({ _id: id }, { $set: updateData });
+	return await Forum.findOneAndUpdate(
+		{ _id: id, isDeleted: false },
+		{ $set: updateData },
+		{ new: true }
+	).lean();
 };
 
+
 export const deleteEntry = async (id: string) => {
-	return await Forum.deleteOne({ _id: id });
+	return await Forum.findByIdAndUpdate(id, { isDeleted: true }, { new: true }).lean();
 };

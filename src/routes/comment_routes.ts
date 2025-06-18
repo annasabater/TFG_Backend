@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { addCommentHandler, getCommentsByDroneHandler } from '../controllers/comment_controller.js';
+import { addCommentHandler, deleteCommentHandler, getAllCommentsHandler, getCommentsByDroneHandler, updateCommentHandler } from '../controllers/comment_controller.js';
 import { checkJwt } from '../middleware/session.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
@@ -73,5 +73,87 @@ router.post('/comments', generalRateLimiter, checkJwt, addCommentHandler);
 
 // Obtener todos los comentarios (y respuestas) de un dron
 router.get('/comments/:droneId', generalRateLimiter, getCommentsByDroneHandler);
+
+/**
+ * @openapi
+ * /api/comments:
+ *   get:
+ *     summary: Obtener todos los comentarios con paginación y filtro
+ *     tags: [Comments]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Número de página
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Límite de resultados por página
+ *       - in: query
+ *         name: droneId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: text
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lista paginada de comentarios
+ */
+router.get('/comments', generalRateLimiter, getAllCommentsHandler);
+
+/**
+ * @openapi
+ * /api/comments/{id}:
+ *   put:
+ *     summary: Actualizar comentario
+ *     tags: [Comments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               text:
+ *                 type: string
+ *               rating:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Comentario actualizado
+ */
+router.put('/comments/:id', generalRateLimiter, checkJwt, updateCommentHandler);
+
+/**
+ * @openapi
+ * /api/comments/{id}:
+ *   delete:
+ *     summary: Eliminar comentario (soft delete)
+ *     tags: [Comments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Comentario marcado como eliminado
+ */
+router.delete('/comments/:id', generalRateLimiter, checkJwt, deleteCommentHandler);
 
 export default router;
