@@ -24,11 +24,6 @@ import { getCommentsByDrone } from '../service/comment_service.js';
 interface UploadedFile {
 	filename: string;
 }
-interface CommentDoc {
-	rating?: number;
-	parentCommentId?: string | null;
-	[key: string]: unknown;
-}
 
 export const createDroneHandler = async (req: Request, res: Response) => {
 	try {
@@ -70,103 +65,110 @@ export const createDroneHandler = async (req: Request, res: Response) => {
   
 
 // Get all drones with pagination
+// Get all drones with pagination
 export const getDronesHandler = async (req: Request, res: Response) => {
 	try {
-		const page  = parseInt(req.query.page as string) || 1;
+		const page = parseInt(req.query.page as string) || 1;
 		let limit = parseInt(req.query.limit as string) || 10;
 		if (limit > 20) limit = 20;
+		const skip = (page - 1) * limit;
 
-		const filters: Record<string, unknown> = {
-			q: req.query.q,
-			category: req.query.category,
-			condition: req.query.condition,
-			location: req.query.location,
-			name: req.query.name,
-			model: req.query.model
+		// Soporte para _id directo
+		if (req.query._id && mongoose.Types.ObjectId.isValid(req.query._id.toString())) {
+			const drone = await Drone.findById(req.query._id.toString());
+			if (!drone) return res.status(404).json({ drones: [], pages: 0 });
+			return res.status(200).json({ drones: [drone], pages: 1 });
+		}
+
+		const filters: Record<string, string | undefined> = {
+			q: req.query.q as string,
+			category: req.query.category as string,
+			condition: req.query.condition as string,
+			location: req.query.location as string,
+			name: req.query.name as string,
+			model: req.query.model as string
 		};
-		// El filtro minRating se aplica después de la consulta
+
 		const minRating = req.query.minRating ? Number(req.query.minRating) : undefined;
 		const minPrice = req.query.minPrice ? Number(req.query.minPrice) : undefined;
 		const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : undefined;
 
-		// Traer los drones solo con los filtros que no dependen del precio
 		let drones = await getDrones(undefined, undefined, filters);
-		// Filtrar por name y model (búsqueda parcial, case-insensitive)
+
 		if (filters.name) {
-			drones = drones.filter((d: { model?: string }) => typeof d.model === 'string' && d.model.toLowerCase().includes((filters.name as string).toLowerCase()));
+			drones = drones.filter(d => typeof d.model === 'string' && d.model.toLowerCase().includes(filters.name!.toLowerCase()));
 		}
 		if (filters.model) {
-			drones = drones.filter((d: { model?: string }) => typeof d.model === 'string' && d.model.toLowerCase().includes((filters.model as string).toLowerCase()));
+			drones = drones.filter(d => typeof d.model === 'string' && d.model.toLowerCase().includes(filters.model!.toLowerCase()));
 		}
 
-		// Calcular averageRating de comentarios raíz para cada dron
 		const dronesWithRatings = await Promise.all(
-			drones.map(async (d: { _id: mongoose.Types.ObjectId; toObject: () => Record<string, unknown> }) => {
+			drones.map(async (d) => {
 				const comments = await getCommentsByDrone(d._id.toString());
-				const rootRatings = (comments as unknown as CommentDoc[])
-					.filter((c: CommentDoc) => typeof c.rating === 'number' && (!c.parentCommentId || c.parentCommentId === null))
-					.map((c: CommentDoc) => c.rating as number);
-				let averageRating: number | null = null;
-				if (rootRatings.length > 0) {
-					averageRating = rootRatings.reduce((a: number, b: number) => a + b, 0) / rootRatings.length;
-					averageRating = Math.round(averageRating * 10) / 10;
-				}
+				const rootRatings = comments
+					.filter(c =>
+						typeof c.rating === 'number' &&
+						(!c.parentCommentId || c.parentCommentId === null)
+					)
+					.map(c => c.rating as number);
+
+				const averageRating = rootRatings.length
+					? Math.round(rootRatings.reduce((a, b) => a + b, 0) / rootRatings.length * 10) / 10
+					: null;
+
 				return { ...d.toObject(), averageRating };
 			})
 		);
 
-		// --- NUEVO: conversión de divisa antes de filtrar por precio ---
 		const allowedCurrencies = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'NZD'];
 		const targetCurrency = req.query.currency as string;
 		if (!targetCurrency || !allowedCurrencies.includes(targetCurrency)) {
 			return res.status(400).json({ message: 'currency es requerido y debe ser una de: ' + allowedCurrencies.join(', ') });
 		}
-		// Convertir precios
+
+		const { getExchangeRate } = await import('../utils/exchangeRates.js');
 		const convertedDrones = await Promise.all(
-			dronesWithRatings.map(async (d: Record<string, unknown>) => {
+			dronesWithRatings.map(async (d) => {
 				let price = d.price as number;
 				let currency = d.currency as string;
-				if (d.currency !== targetCurrency) {
-					const { getExchangeRate } = await import('../utils/exchangeRates.js');
+				if (currency !== targetCurrency) {
 					const rate = await getExchangeRate(currency, targetCurrency);
-					price = Math.round((price * rate) * 100) / 100;
+					price = Math.round(price * rate * 100) / 100;
 					currency = targetCurrency;
 				}
-				return {
-					...d,
-					price,
-					currency
-				};
+				return { ...d, price, currency };
 			})
 		);
 
-		// Filtrar por minPrice y maxPrice usando el precio convertido
 		let filteredDrones = convertedDrones;
 		if (minPrice !== undefined) {
-			filteredDrones = filteredDrones.filter((d: Record<string, unknown>) => Number(d.price) >= minPrice);
+			filteredDrones = filteredDrones.filter(d => Number(d.price) >= minPrice);
 		}
 		if (maxPrice !== undefined) {
-			filteredDrones = filteredDrones.filter((d: Record<string, unknown>) => Number(d.price) <= maxPrice);
+			filteredDrones = filteredDrones.filter(d => Number(d.price) <= maxPrice);
+		}
+		if (minRating !== undefined) {
+			filteredDrones = filteredDrones.filter(d => (d.averageRating ?? 0) >= minRating);
 		}
 
-		// Filtrar por minRating usando el nuevo averageRating
-		if (minRating) {
-			filteredDrones = filteredDrones.filter((d: Record<string, unknown>) => (d.averageRating as number || 0) >= minRating);
-		}
-		// Ordenar por fecha de creación descendente
-		filteredDrones = filteredDrones.sort((a: Record<string, unknown>, b: Record<string, unknown>) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
+		filteredDrones = filteredDrones.sort((a, b) => {
+			const dateA = new Date(a.createdAt as unknown as string).getTime();
+			const dateB = new Date(b.createdAt as unknown as string).getTime();
+			return dateB - dateA;
+		});
 
-		// Aplicar paginación después de todos los filtros
-		const start = (page - 1) * limit;
-		const end = start + limit;
-		const paginatedDrones = filteredDrones.slice(start, end);
+		const total = await Drone.countDocuments();
+		const pages = Math.ceil(total / limit);
+		const paginatedDrones = filteredDrones.slice(skip, skip + limit);
 
-		res.status(200).json(paginatedDrones);
-	} catch (error: unknown) {
+		res.status(200).json({ drones: paginatedDrones, pages });
+	} catch (error) {
 		res.status(500).json({ message: (error as Error).message || 'Error al obtener los drones' });
 	}
 };
-  
+
+
+
 /* --- Favorits --- */
 export const addFavoriteHandler = async (req: Request, res: Response) => {
 	try {

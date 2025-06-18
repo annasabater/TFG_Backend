@@ -4,6 +4,7 @@ import { JwtPayload } from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { verifyRole } from '../middleware/session.js';
 import User from '../models/user_models.js';
+import mongoose from 'mongoose';
 
 interface RequestExt extends Request {
     user?: string | JwtPayload;
@@ -35,22 +36,46 @@ export const createUserHandler = async (req: Request, res: Response) => {
 	}
 };
 
+// src/controllers/user_controller.ts
 export const getAllUsersHandler = async (req: Request, res: Response) => {
 	try {
 		const page = parseInt(req.query.page as string) || 1;
 		const limit = parseInt(req.query.limit as string) || 10;
 		const skip = (page - 1) * limit;
 
-		const users = await User.find({ isDeleted: false }, 'userName email role')
-			.skip(skip)
-			.limit(limit);
+		const filter: Record<string, unknown> = { isDeleted: false };
 
-		res.status(200).json(users);
+		// Filtros existentes
+		if (req.query.userName) {
+			filter.userName = { $regex: req.query.userName, $options: 'i' };
+		}
+		if (req.query.email) {
+			filter.email = { $regex: req.query.email, $options: 'i' };
+		}
+		if (req.query.role) {
+			filter.role = req.query.role;
+		}
+
+		// 🆕 Filtro por ID exacto (string que parezca un ObjectId válido)
+		if (req.query._id && mongoose.Types.ObjectId.isValid(req.query._id.toString())) {
+			filter._id = new mongoose.Types.ObjectId(req.query._id.toString());
+		}
+
+		const [users, total] = await Promise.all([
+			User.find(filter, 'userName email role').skip(skip).limit(limit),
+			User.countDocuments(filter)
+		]);
+
+		const pages = Math.ceil(total / limit);
+
+		res.status(200).json({ users, pages });
 	} catch (error) {
 		console.error('Error fetching users:', error);
 		res.status(500).json({ message: 'Error fetching users' });
 	}
 };
+
+
 
 export const getUserByIdHandler = async (req: Request, res: Response) => {
 	try {

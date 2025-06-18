@@ -5,7 +5,6 @@ import { createEntryHandler,
 	getEntryByIdHandler,
 	updateEntryHandler } from '../controllers/forum_controller.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
-import { checkJwt } from '../middleware/session.js';
 
 const router = express.Router();
 
@@ -57,7 +56,7 @@ router.post('/forum',generalRateLimiter, createEntryHandler);
  *       200:
  *         description: List of all forums
  */
-router.get('/forum',generalRateLimiter,checkJwt, getAllForumHandler);
+router.get('/forum',generalRateLimiter, getAllForumHandler);
 
 /**
  * @openapi
