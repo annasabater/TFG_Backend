@@ -185,19 +185,17 @@ export const getDronesHandler = async (req: Request, res: Response) => {
 			return dateB - dateA;
 		});
 
-		const total = await Drone.countDocuments();
-		const pages = Math.ceil(total / limit);
-		const paginatedDrones = filteredDrones.slice(skip, skip + limit);
+const total = await Drone.countDocuments();
+const pages = Math.ceil(total / limit);
+const paginatedDrones = filteredDrones.slice(skip, skip + limit);
 
-<<<<<<< HEAD
-		res.status(200).json(paginatedDrones.map(normalizeIds));
-	} catch (error: unknown) {
-=======
-		res.status(200).json({ drones: paginatedDrones, pages });
-	} catch (error) {
->>>>>>> 08aebc5229c15275a2de7c69f9db783a74ee21f7
-		res.status(500).json({ message: (error as Error).message || 'Error al obtener los drones' });
-	}
+res.status(200).json({
+  drones: paginatedDrones.map(normalizeIds),
+  pages
+});
+} catch (error) {
+  res.status(500).json({ message: (error as Error).message || 'Error al obtener los drones' });
+}
 };
   
 // Favoritos
