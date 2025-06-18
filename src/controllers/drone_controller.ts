@@ -19,6 +19,7 @@ import {
 	getUserSalesHistory
 } from '../service/drone_service.js';
 import { getCommentsByDrone } from '../service/comment_service.js';
+import User from '../models/user_models.js';
 
 // Tipos auxiliares
 interface UploadedFile {
@@ -30,41 +31,67 @@ interface CommentDoc {
 	[key: string]: unknown;
 }
 
+function normalizeIds(rec: any) {
+  const obj = { ...rec };
+  ['_id', 'ownerId', 'sellerId'].forEach((k) => {
+    if (obj[k] && typeof obj[k] !== 'string') {
+      obj[k] = obj[k].toString();
+    }
+  });
+  return obj;
+}
+
+// controllers/drone_controller.ts
 export const createDroneHandler = async (req: Request, res: Response) => {
-	try {
-		const {
-			_id,
-			status,
-			createdAt,
-			ratings,
-			isSold,
-			isService,
-			...droneData
-		} = req.body;
+  try {
+    const userId = (req as any).user.id;       
+    const {
+      _id, status, createdAt, ratings, isSold, isService, ...rest
+    } = req.body;
 
-		// Validar y forzar stock
-		let stock = 1;
-		if (typeof droneData.stock !== 'undefined') {
-			stock = parseInt(droneData.stock);
-			if (isNaN(stock) || stock < 0) stock = 1;
-		}
-		droneData.stock = stock;
+    const stock = Math.max(1, parseInt(rest.stock ?? '1', 10) || 1);
 
-		// Manejar imágenes subidas
-		let images: string[] = [];
-		if ((req as unknown as { files?: UploadedFile[] }).files && Array.isArray((req as unknown as { files?: UploadedFile[] }).files)) {
-			images = ((req as unknown as { files: UploadedFile[] }).files).map((file: UploadedFile) => 'https://ea2-api.upc.edu/uploads/' + file.filename);
-		}
-		if (images.length > 0) {
-			droneData.images = images;
-		}
+    const drone = await Drone.create({
+      ...rest,
+      stock,
+      ownerId : userId,      
+      sellerId: userId,        
+    });
 
-		const drone = await createDrone(droneData);
-		res.status(201).json(drone);
-	} catch (error: unknown) {
-		console.error('ERROR createDrone:', error);
-		res.status(500).json({ message: (error as Error).message || 'Error al crear el dron' });
-	}
+    res.status(201).json(drone);
+  } catch (e) {
+    res.status(500).json({ message: (e as Error).message });
+  }
+};
+
+
+export const getDroneByIdHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Validar el ObjectId de Mongo
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'ID de dron inválido' });
+    }
+
+    // Buscar el dron
+    const drone = await getDroneById(id);
+    if (!drone) {
+      return res.status(404).json({ message: 'Dron no encontrado' });
+    }
+
+    // Garantizar que sellerId / ownerId llega como string
+    const obj = drone.toObject() as any;
+    if (obj.sellerId && typeof obj.sellerId !== 'string') {
+      obj.sellerId = (obj.sellerId as mongoose.Types.ObjectId).toString();
+    }
+
+    return res.status(200).json(obj);
+  } catch (err) {
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : 'Error al obtener el dron',
+    });
+  }
 };
 
   
@@ -161,7 +188,7 @@ export const getDronesHandler = async (req: Request, res: Response) => {
 		const end = start + limit;
 		const paginatedDrones = filteredDrones.slice(start, end);
 
-		res.status(200).json(paginatedDrones);
+		res.status(200).json(paginatedDrones.map(normalizeIds));
 	} catch (error: unknown) {
 		res.status(500).json({ message: (error as Error).message || 'Error al obtener los drones' });
 	}
@@ -199,28 +226,22 @@ export const getFavoritesHandler = async (req: Request, res: Response) => {
   
 
 // Obtener un dron por ID
-export const getDroneByIdHandler = async (req: Request, res: Response) => {
-	try {
-		const { id } = req.params;
-		let drone: mongoose.Document | null = null;
-
-		if (mongoose.Types.ObjectId.isValid(id)) {
-			drone = await getDroneById(id);
-		}
-
-		if (!drone) {
-			return res.status(404).json({ message: 'Drone no encontrado' });
-		}
-
-		// Obtener comentarios anidados
-		const comments = await getCommentsByDrone((drone._id as mongoose.Types.ObjectId).toString());
-
-		res.status(200).json({ ...drone.toObject(), comments });
-	} catch (error) {
-		const errMsg = error instanceof Error ? error.message : "Error al obtener el dron";
-		res.status(500).json({ message: errMsg });
-	}
+export const getUserByIdHandler = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'ID de usuario inválido' });
+  }
+  try {
+    const user = await User.findById(id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.status(200).json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Error obteniendo usuario', error: err });
+  }
 };
+
 
 export const getOwnerByDroneIdHandler = async (req:Request,res: Response) => {
 	try {

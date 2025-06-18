@@ -14,7 +14,7 @@ import {
 	createOrderHandler,
 	getUserOrdersHandler,
 	processPaymentHandler,
-	getUserPaymentsHandler
+	getUserPaymentsHandler,
 } from '../controllers/message_controller.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
 
@@ -195,9 +195,21 @@ router.get('/drones/price', generalRateLimiter, getDronesByPriceRangeHandler);
 
 /**
  * @swagger
- * tags:
- *   name: Messages
- *   description: Mensajería entre usuarios
+ * components:
+ *   schemas:
+ *     MessageInput:
+ *       type: object
+ *       properties:
+ *         senderId:
+ *           type: string
+ *         receiverId:
+ *           type: string
+ *         content:
+ *           type: string
+ *       required:
+ *         - senderId
+ *         - receiverId
+ *         - content
  */
 
 /**
@@ -207,6 +219,7 @@ router.get('/drones/price', generalRateLimiter, getDronesByPriceRangeHandler);
  *     summary: Enviar un mensaje
  *     tags: [Messages]
  *     requestBody:
+ *       description: Datos del mensaje a enviar
  *       required: true
  *       content:
  *         application/json:
@@ -215,10 +228,15 @@ router.get('/drones/price', generalRateLimiter, getDronesByPriceRangeHandler);
  *     responses:
  *       201:
  *         description: Mensaje creado y emitido por WS
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageInput'
  *       500:
  *         description: Error al enviar mensaje
  */
 router.post('/messages', generalRateLimiter, sendMessageHandler);
+
 
 /**
  * @swagger
@@ -229,23 +247,43 @@ router.post('/messages', generalRateLimiter, sendMessageHandler);
  *     parameters:
  *       - in: path
  *         name: userId
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: ID del usuario autenticado
  *       - in: path
  *         name: contactId
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: ID del otro usuario
  *     responses:
  *       200:
  *         description: Lista de mensajes ordenada cronológicamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   senderId:
+ *                     type: string
+ *                   receiverId:
+ *                     type: string
+ *                   content:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
  *       500:
  *         description: Error al obtener mensajes
  */
 router.get('/messages/:userId/:contactId', generalRateLimiter, getMessagesHandler);
+
+
 
 /**
  * @swagger
@@ -256,17 +294,36 @@ router.get('/messages/:userId/:contactId', generalRateLimiter, getMessagesHandle
  *     parameters:
  *       - in: path
  *         name: userId
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: ID del usuario autenticado
  *     responses:
  *       200:
  *         description: Lista de conversaciones con último mensaje
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   members:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   lastMessage:
+ *                     type: string
+ *                   updatedAt:
+ *                     type: string
+ *                     format: date-time
  *       500:
  *         description: Error cargando conversaciones
  */
 router.get('/conversations/:userId', generalRateLimiter, getConversationsHandler);
+
 
 /**
  * @swagger

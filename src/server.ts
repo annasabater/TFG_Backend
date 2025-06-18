@@ -16,6 +16,7 @@ import messageRoutes  from './routes/message_routes.js';
 import sessionRoutes  from './routes/session_routes.js';
 import socialRoutes   from './routes/social_routes.js';
 import commentRoutes  from './routes/comment_routes.js';
+import conversationRoutes from './routes/conversation_routes.js';
 
 import { corsHandler }     from './middleware/corsHandler.js';
 import { loggingHandler }  from './middleware/loggingHandler.js';
@@ -120,6 +121,7 @@ app.use('/api', authRoutes);
 app.use('/api', messageRoutes);
 app.use('/api', socialRoutes);
 app.use('/api', commentRoutes);
+app.use('/api', conversationRoutes);
 app.use('/api', notificationRoutes);
 app.use('/uploads', express.static(UPLOAD_DIR));
 

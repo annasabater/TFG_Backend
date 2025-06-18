@@ -11,6 +11,8 @@ import {
 } from '../controllers/user_controller.js';
 import { checkJwt } from '../middleware/session.js';
 import { generalRateLimiter } from '../middleware/rateLimiter.js';
+import mongoose from 'mongoose';
+import User from '../models/user_models.js';
 
 const router = express.Router();
 
@@ -186,6 +188,43 @@ router.get('/users/:id/balance', getUserBalanceHandler);
  */
 router.post('/users/:id/balance', addUserBalanceHandler);
 
-// Mantener las rutas de balance y cualquier otra relacionada con la tienda
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Obtener un usuario por ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de Mongo del usuario
+ *     responses:
+ *       200:
+ *         description: Usuario encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: ID inválido
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.get('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'ID de usuario inválido' });
+  }
+  try {
+    const user = await User.findById(id).select('-password');
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Error obteniendo usuario', error: err });
+  }
+});
 
 export default router;
