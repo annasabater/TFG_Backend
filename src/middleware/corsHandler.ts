@@ -1,24 +1,23 @@
-//src/middleware/corsHandler.ts
-import { Request, Response, NextFunction } from 'express';
+// src/middleware/corsHandler.ts
+import cors from 'cors';
 
-export function corsHandler(req: Request, res: Response, next: NextFunction) {
+const allowedOrigins = [
+  'https://1ba9-85-49-132-44.ngrok-free.app', // túnel WEB (8080)
+  'http://localhost:8080',                    //  en local
+];
 
-	res.header('Access-Control-Allow-Origin', req.header('origin') || '*');
-
-	res.header(
-		'Access-Control-Allow-Headers',
-		'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-	);
-
-	res.header('Access-Control-Allow-Credentials', 'true');
-
-	if (req.method === 'OPTIONS') {
-
-		res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
-
-		return res.sendStatus(200);
-	}
-
-	next();
-}
-
+export const corsHandler = cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+  ],
+});
