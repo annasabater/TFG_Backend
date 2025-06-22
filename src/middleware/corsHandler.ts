@@ -1,15 +1,20 @@
 // src/middleware/corsHandler.ts
+
 import cors from 'cors';
 
 const allowedOrigins = [
-  'https://1ba9-85-49-132-44.ngrok-free.app', // túnel WEB (8080)
-  'http://localhost:8080',                    //  en local
+  'https://7a77-85-49-132-44.ngrok-free.app',  // túnel Web (Flutter)
+  'http://localhost:8080',                     // desplegament local
+  'http://127.0.0.1:8080',                     // fallback local
 ];
 
 export const corsHandler = cors({
-  origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error('Not allowed by CORS'));
+  origin: (origin, callback) => {
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -21,3 +26,4 @@ export const corsHandler = cors({
     'Authorization',
   ],
 });
+

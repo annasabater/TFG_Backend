@@ -17,6 +17,7 @@ import sessionRoutes  from './routes/session_routes.js';
 import socialRoutes   from './routes/social_routes.js';
 import commentRoutes  from './routes/comment_routes.js';
 import conversationRoutes from './routes/conversation_routes.js';
+import rateLimit from 'express-rate-limit';
 
 import { corsHandler }     from './middleware/corsHandler.js';
 import { loggingHandler }  from './middleware/loggingHandler.js';
@@ -40,8 +41,20 @@ dotenv.config({
 });
 
 const app        = express();
+app.set('trust proxy', 1);
+
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 const SERVER_URL = process.env.SERVER_URL || `http://localhost:${LOCAL_PORT}`;
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1_000,   // 15 min
+  max: 100,                    // 100 peticiones/IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req, _res) => req.ip ?? '',
+});
+
+app.use('/api', apiLimiter);
 
 // Configuración de Swagger
 const path_constant = process.env.SWAGGER_PATH || './routes/*.js';
