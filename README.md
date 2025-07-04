@@ -1,4 +1,4 @@
-# TFG: Contribució al Drone Engineering Ecosystem
+# TFG: Implementació d'un joc de combat de drons amb Flutter, Node.js i Python
 
 Una API REST per la Contribució al Drone Engineering Ecosystem, implementada amb Node.js i TypeScript, Express i MongoDB. Inclou autenticació amb JWT i documentació automàtica via Swagger.
 
@@ -10,8 +10,9 @@ Una API REST per la Contribució al Drone Engineering Ecosystem, implementada am
 3. [Configuració](#configuracio)  
 4. [Execució](#execucio)  
 5. [Documentació Swagger](#documentacio-swagger)  
-6. [Principals dependències](#principals-dependencies)  
-7. [Dependències de desenvolupament](#dependencies-de-desenvolupament)  
+6. [Vídeo](#vídeo)  
+7. [Principals dependències](#principals-dependencies)  
+8. [Dependències de desenvolupament](#dependencies-de-desenvolupament)  
 
 
 ## Requisits previs
@@ -39,6 +40,10 @@ npm start
 ## Documentació
 Un cop l’API està en funcionament, la documentació interactiva està disponible a:
 http://localhost:9000/api-docs
+
+
+## Vídeo
+Enllaç del vídeo del recorregut pel codi: https://www.youtube.com/watch?v=DVfZwvJzVrI
 
 
 ## Dependències Principals

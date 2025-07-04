@@ -3,7 +3,7 @@
 import cors from 'cors';
 
 const allowedOrigins = [
-  'https://3684-85-49-132-44.ngrok-free.app',  // túnel Web (Flutter)
+  'https://4058-85-49-132-44.ngrok-free.app',  // túnel Web (Flutter)
   'http://localhost:8080',                     // desplegament local
   'http://127.0.0.1:8080',                     // fallback local
 ];

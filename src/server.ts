@@ -35,28 +35,33 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// Carga el .env desde la carpeta raíz 
+// Carga el .env desde la carpeta arrel 
 dotenv.config({
 	path: path.resolve(__dirname, '../.env'),
 });
 
-const app        = express();
+// Inicialització d'Express
+const app = express();
+// Confia en el proxy (ngrok) per obtenir la IP real del client
 app.set('trust proxy', 1);
 
+// Port i URL del servidor
 const LOCAL_PORT = process.env.SERVER_PORT || 9000;
 const SERVER_URL = process.env.SERVER_URL || `http://localhost:${LOCAL_PORT}`;
 
+// Limitador de peticions per IP (protecció contra abús)
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1_000,   // 15 min
-  max: 100,                    // 100 peticiones/IP
+  windowMs: 15 * 60 * 1_000,   // 15 minuts
+  max: 100,                    // 100 peticions per IP
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req, _res) => req.ip ?? '',
 });
 
+// Aplica el limitador només a les rutes /api
 app.use('/api', apiLimiter);
 
-// Configuración de Swagger
+// Configuració de Swagger per documentar l'API
 const path_constant = process.env.SWAGGER_PATH || './routes/*.js';
 const swaggerOptions = {
 	definition: {
@@ -64,44 +69,44 @@ const swaggerOptions = {
 		info: {
 			title: 'API de Usuarios',
 			version: '1.0.0',
-			description: 'Documentación de la API de Usuarios'
+			description: 'Documentació de l\'API d\'usuaris'
 		},
 		tags: [
 			{
 				name: 'Users',
-				description: 'Rutas relacionadas con la gestión de usuarios',
+				description: 'Rutes relacionades amb la gestió d\'usuaris',
 			},
 			{
 				name: 'Forum',
-				description: 'Rutas relacionadas con el forum',
+				description: 'Rutes relacionades amb el fòrum',
 			},
 			{
 				name: 'Drones',
-				description: 'Rutas relacionadas con el drone',
+				description: 'Rutes relacionades amb el dron',
 			},
 			{
 				name: 'Main',
-				description: 'Rutas principales de la API',
+				description: 'Rutes principals de l\'API',
 			},
 			{ 
 				name: 'Payments', 
-				description: 'Procesamiento de pagos' ,
+				description: 'Processament de pagaments' ,
 			},
 			{ 
 				name: 'Messages', 
-				description: 'Mensajería entre usuarios' ,
+				description: 'Missatgeria entre usuaris' ,
 			},
 			{ 
-				name: 'Juegos', 
-				description: 'Juegos entre usuarios' ,
+				name: 'Jocs', 
+				description: 'Jocs entre usuaris' ,
 			},
 			{ 
 				name: 'Social media', 
-				description: 'Red social de usuarios' ,
+				description: 'Xarxa social d\'usuaris' ,
 			},
 			{ 
 				name: 'Auth', 
-				description: 'Registro y Login de usuarios' ,
+				description: 'Registre i Login d\'usuaris' ,
 			},
 			{
 				name: 'Notifications',
@@ -118,44 +123,45 @@ const swaggerOptions = {
 };
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
-// Middlewares globales
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use(express.json());
-app.use(cookieParser());
-app.use(loggingHandler);
-app.use(corsHandler);
+// Middlewares globals
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec)); // Documentació interactiva
+app.use(express.json()); // Parseja JSON
+app.use(cookieParser()); // Parseja cookies
+app.use(loggingHandler); // Log de peticions
+app.use(corsHandler);    // Permet CORS
 
-// Rutas REST
-app.use('/api', userRoutes);
-app.use('/api', forumRoutes);
-app.use('/api', droneRoutes);
-app.use('/api', sessionRoutes);
-app.use('/api', authRoutes);
-app.use('/api', messageRoutes);
-app.use('/api', socialRoutes);
-app.use('/api', commentRoutes);
-app.use('/api', conversationRoutes);
-app.use('/api', notificationRoutes);
-app.use('/uploads', express.static(UPLOAD_DIR));
+// Rutes REST principals
+app.use('/api', userRoutes);         // Usuaris
+app.use('/api', forumRoutes);        // Fòrums
+app.use('/api', droneRoutes);        // Drons
+app.use('/api', sessionRoutes);      // Sessions
+app.use('/api', authRoutes);         // Autenticació
+app.use('/api', messageRoutes);      // Missatges
+app.use('/api', socialRoutes);       // Xarxa social
+app.use('/api', commentRoutes);      // Comentaris
+app.use('/api', conversationRoutes); // Converses
+app.use('/api', notificationRoutes); // Notificacions
+app.use('/uploads', express.static(UPLOAD_DIR)); // Fitxers pujats
 
-// Ruta de prueba
+// Ruta de prova
 app.get('/', (_req, res) => {
 	res.send('Welcome to my API');
 });
 
-// Conexión a MongoDB
+// Connexió a MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ExampleDatabase')
-	.then(() => console.log('Connected to DB'))
-	.catch(error => console.error('DB Connection Error:', error));
+	.then(() => console.log('Connectat a la base de dades'))
+	.catch(error => console.error('Error de connexió a la BD:', error));
 
-// Configuración de Socket.IO
+// Configuració de Socket.IO per temps real
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: '*' },
-  pingInterval : 30000,   // envía un ping cada 30 s
-  pingTimeout  : 90000,   // espera hasta 90 s el pong
+  pingInterval : 30000,   // envia un ping cada 30 s
+  pingTimeout  : 90000,   // espera fins a 90 s el pong
 });
 
+// Estat de la partida per cada sessió
 const gameState: {
   [sessionId: string]: {
     fences: { drone: string; geometry: any }[];
@@ -163,7 +169,7 @@ const gameState: {
   };
 } = {};
 
-//  Namespace de alumnos (/jocs)
+// Namespace d'alumnes (/jocs)
 const jocsNsp = io.of('/jocs');
 const competitorEmails = new Set([
 	'dron_azul1@upc.edu',
@@ -172,13 +178,14 @@ const competitorEmails = new Set([
 	'dron_amarillo1@upc.edu',
 ]);
 
+// Autenticació per als drons competidors
 jocsNsp.use(async (socket, next) => {
-	// Si viene como espectador, saltamos autenticación
+	// Si ets un espectador, salta autenticació
 	if (socket.handshake.query?.spectator === 'true') {
 		return next();
 	}
 
-	// Autenticación normal para drones competidores
+	// Autenticació normal per competidors
 	try {
 		const token = socket.handshake.auth?.token;
 		if (!token) throw new Error('No token');
@@ -195,6 +202,7 @@ jocsNsp.use(async (socket, next) => {
 	}
 });
 
+// Gestió d'esdeveniments de joc
 jocsNsp.on('connection', socket => {
 
 socket.on('disconnect', () => {
@@ -287,7 +295,6 @@ socket.on('disconnect', () => {
     });
   });
 
-  /* ── Puntuación ───────────────────────────────────────────── */
   socket.on('score', ({ sessionId, drone, score }) => {
     jocsNsp.to(sessionId).emit('state_update', {
       drone,
@@ -323,16 +330,17 @@ socket.on('disconnect', () => {
 });
 
 
-// Namespace del profesor (/professor)
+// Namespace del professor (/professor)
 const profNsp = io.of('/professor');
 
-// Autenticación ADMIN_KEY
+// Autenticació per al professor (ADMIN_KEY)
 profNsp.use((socket, next) => {
 	const key = socket.handshake.auth?.key;
 	if (key === process.env.ADMIN_KEY) return next();
 	next(new Error('Not authorized'));
 });
 
+// Esdeveniments del professor
 profNsp.on('connection', socket => {
 	console.log('Profesor conectado');
 	socket.on('startCompetition', ({ sessionId }) => {
@@ -344,9 +352,11 @@ profNsp.on('connection', socket => {
 	});
 });
 
-// Namespace de chat entre usuarios 
+
+// Namespace de xat entre usuaris
 export const chatNsp = io.of('/chat');
 
+// Autenticació per al xat
 chatNsp.use(async (socket, next) => {
 	try {
 		const token = socket.handshake.auth?.token;
@@ -362,6 +372,7 @@ chatNsp.use(async (socket, next) => {
 	}
 });
 
+// Gestió de missatges de xat
 chatNsp.on('connection', socket => {
 	const uid = socket.data.userId;
 	socket.join(uid);  // cada usuario en su “room”
@@ -369,11 +380,11 @@ chatNsp.on('connection', socket => {
 	socket.on('send_message', async ({ senderId, receiverId, content }) => {
 		try {
 			if (!senderId || !receiverId || !content) {
-				console.warn('Faltan datos en send_message');
+				console.warn('Faltan dades en send_message');
 				return;
 			}
 
-			// Guardar el mensaje en MongoDB
+			// Guardar el missatge a MongoDB
 			const newMsg = new Message({ senderId, receiverId, content });
 			await newMsg.save();
 
@@ -384,10 +395,10 @@ chatNsp.on('connection', socket => {
 				timestamp: newMsg.createdAt,
 			};
 
-			// Emitir al receptor (si está conectado)
+			// Emitir al receptor (si està connectat)
 			chatNsp.to(receiverId).emit('new_message', messagePayload);
 
-			// Emitir al remitente también (para confirmar envío)
+			// Emitir al remitente també (per confirmar enviament)
 			socket.emit('new_message', messagePayload);
 		} catch (err) {
 			console.error('Error al guardar o enviar mensaje:', err);
@@ -395,9 +406,11 @@ chatNsp.on('connection', socket => {
 	});
 });
 
+// Middleware per rutes no trobades
 app.use(routeNotFound);
 
+// Inicia el servidor HTTP i WebSocket
 httpServer.listen(Number(LOCAL_PORT), '0.0.0.0', () => {
-	console.log(`API y WS corriendo en puerto ${LOCAL_PORT}`);
+	console.log(`API i WS corrent al port ${LOCAL_PORT}`);
 });
 
